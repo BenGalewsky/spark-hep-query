@@ -10,8 +10,9 @@ assignees: ''
 # Story
 _As a <blah> I want to <blah> so I can <blah>_
 
+# Acceptance Criteria
+1. How will we know when this story is complete
+
 # Assumptions
 1. List assumptions behind this story
 
-# Acceptance Criteria
-1. How will we know when this story is complete

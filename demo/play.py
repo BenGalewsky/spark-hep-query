@@ -3,6 +3,7 @@ from pyspark.sql.functions import pandas_udf, PandasUDFType
 from pyspark.accumulators import AccumulatorParam
 from pyspark.shell import spark
 from collections import OrderedDict
+import time
 
 import awkward as awk
 import numpy as np
@@ -10,9 +11,8 @@ import pandas as pd
 import re
 import fnal_column_analysis_tools.hist as hist
 
-from pyspark.sql.types import IntegerType
+from pyspark.sql.types import IntegerType, DoubleType
 
-import aghast.connect.numpy as connect_numpy
 from fnal_column_analysis_tools.analysis_objects import JaggedCandidateArray
 
 
@@ -62,7 +62,7 @@ class NumpyVectorAccumulatorParam(AccumulatorParam):
 
 spark.conf.set("spark.sql.execution.arrow.enabled", "true")
 spark.conf.set("spark.sql.execution.arrow.fallback.enabled", "false")
-df = spark.read.parquet("file:/Users/bengal1/dev/IRIS-HEP/data/bignano.parquet")
+df = spark.read.parquet("file:/Users/ncsmith/src/spark-hep-query/demo/bignano.parquet")
 df = df.withColumn("dataset", functions.lit("my_dataset"))
 slim = df.select(df.event,
                  df.nElectron,
@@ -73,6 +73,7 @@ slim = df.select(df.event,
                  df.Electron_cutBased,
                  df.Electron_pdgId,
                  df.Electron_pfRelIso03_all,
+                 df.nMuon,
                  df.Muon_pt,
                  df.Muon_eta,
                  df.Muon_phi,
@@ -84,39 +85,9 @@ slim = df.select(df.event,
                  )
 
 
-BINS = 10
-HIST_RANGE = (0.05, 0.2)
-histograms = {
-    "zMass": {
-        "bins": 10,
-        "range": (0.05, 0.2),
-        "accumulator": spark.sparkContext.accumulator(
-            connect_numpy.fromnumpy(
-                np.histogram([], bins=BINS, range=HIST_RANGE)),
-            NumpyVectorAccumulatorParam())
-    },
-    "lepton_pt": {
-        "bins": 10,
-        "range": (0.05, 0.2),
-        "accumulator": spark.sparkContext.accumulator(
-            connect_numpy.fromnumpy(
-                np.histogram([], bins=BINS, range=HIST_RANGE)),
-            NumpyVectorAccumulatorParam())
-    },
-    "profile": {
-        "bins": 10,
-        "range": (0.05, 0.2),
-        "accumulator": spark.sparkContext.accumulator(
-            connect_numpy.fromnumpy(
-                np.histogram([], bins=BINS, range=HIST_RANGE)),
-            NumpyVectorAccumulatorParam())
-    },
-}
-
-
-
 
 def compute_zpeak(dataset,
+                  nElectron, 
                   Electron_pt,
                   Electron_eta,
                   Electron_phi,
@@ -124,6 +95,7 @@ def compute_zpeak(dataset,
                   Electron_cutBased,
                   Electron_pdgId,
                   Electron_pfRelIso03_all,
+                  nMuon,
                   Muon_pt,
                   Muon_eta,
                   Muon_phi,
@@ -131,60 +103,35 @@ def compute_zpeak(dataset,
                   Muon_tightId,
                   Muon_pdgId,
                   Muon_pfRelIso04_all):
-    global histograms, hist, dataset_axis, channel_cat_axis
+    global hist, dataset_axis, channel_cat_axis
+    tic = time.time()
 
-    almost_electrons = awk.JaggedArray.zip(
-        {"pt": awk.JaggedArray.fromiter(Electron_pt),
-         "eta": awk.JaggedArray.fromiter(Electron_eta),
-         "phi": awk.JaggedArray.fromiter(Electron_phi),
-         "mass": awk.JaggedArray.fromiter(Electron_mass),
-         "cutBased": awk.JaggedArray.fromiter(Electron_cutBased),
-         "pdgId": awk.JaggedArray.fromiter(Electron_pdgId),
-         "pfRelIso03_all": awk.JaggedArray.fromiter(Electron_pfRelIso03_all)
-    })
-
-    electrons = JaggedCandidateArray.candidatesfromoffsets(almost_electrons.offsets,
-                                                           pt=almost_electrons["pt"].content,
-                                                           eta=almost_electrons["eta"].content,
-                                                           phi=almost_electrons["phi"].content,
-                                                           mass=almost_electrons["mass"].content,
-                                                           cutBased=almost_electrons["cutBased"].content,
-                                                           pdgId=almost_electrons["pdgId"].content,
-                                                           pfRelIso03_all=almost_electrons["pfRelIso03_all"].content
-                                                           )
+    electrons = JaggedCandidateArray.candidatesfromcounts(
+            nElectron.array,
+            pt=Electron_pt.array[0].base,
+            eta=Electron_eta.array[0].base,
+            phi=Electron_phi.array[0].base,
+            mass=Electron_mass.array[0].base,
+            cutBased=Electron_cutBased.array[0].base,
+            pdgId=Electron_pdgId.array[0].base,
+            pfRelIso03_all=Electron_pfRelIso03_all.array[0].base,
+        )
 
     ele = electrons[(electrons.pt > 20) &
                     (np.abs(electrons.eta) < 2.5) &
                     (electrons.cutBased >= 4)]
 
-    almost_muons = awk.JaggedArray.zip(
-        {
-            "pt": awk.JaggedArray.fromiter(Muon_pt),
-            "eta": awk.JaggedArray.fromiter(Muon_eta),
-            "phi": awk.JaggedArray.fromiter(Muon_phi),
-            "mass": awk.JaggedArray.fromiter(Muon_mass),
-            "tightId": awk.JaggedArray.fromiter(Muon_tightId),
-            "pdgId": awk.JaggedArray.fromiter(Muon_pdgId),
-            "pfRelIso04_all": awk.JaggedArray.fromiter(Muon_pfRelIso04_all)
-        })
 
-    muons = JaggedCandidateArray.candidatesfromoffsets(almost_muons.offsets,
-                                                       pt=almost_muons[
-                                                           "pt"].content,
-                                                       eta=almost_muons[
-                                                           "eta"].content,
-                                                       phi=almost_muons[
-                                                           "phi"].content,
-                                                       mass=almost_muons[
-                                                           "mass"].content,
-                                                       tightId=
-                                                       almost_muons[
-                                                           "tightId"].content,
-                                                       pdgId=almost_muons[
-                                                           "pdgId"].content,
-                                                       pfRelIso04_all=
-                                                       almost_muons[
-                                                           "pfRelIso04_all"].content)
+    muons = JaggedCandidateArray.candidatesfromcounts(
+            nMuon.values,
+            pt=Muon_pt.array[0].base,
+            eta=Muon_eta.array[0].base,
+            phi=Muon_phi.array[0].base,
+            mass=Muon_mass.array[0].base,
+            tightId=Muon_tightId.array[0].base,
+            pdgId=Muon_pdgId.array[0].base,
+            pfRelIso04_all=Muon_pfRelIso04_all.array[0].base,
+        )
 
     mu = muons[(muons.pt > 20) &
                (np.abs(muons.eta) < 2.4) &
@@ -227,9 +174,9 @@ def compute_zpeak(dataset,
                    weight=weight.flatten())
         zMassHist.add(zMass)
 
-        # zMassHist["accumulator"].add(connect_numpy.fromnumpy(zMass))
 
-    return pd.Series(np.zeros(Electron_pt.size))
+    dt = time.time() - tic
+    return pd.Series(np.ones(Electron_pt.size) * dt/Electron_pt.size)
 
 # foo_udf = pandas_udf(foo, IntegerType(), PandasUDFType.SCALAR)
 # slim.select(foo_udf("Electron_pt")).describe()
@@ -268,7 +215,7 @@ def foo(dataset,
     return nElectron
 
 
-foo_udf = pandas_udf(foo, IntegerType(), PandasUDFType.SCALAR)
+foo_udf = pandas_udf(foo, DoubleType(), PandasUDFType.SCALAR)
 
 slim.select(foo_udf("dataset", "nElectron",     "Electron_pt",
     "Electron_eta",
@@ -279,9 +226,10 @@ slim.select(foo_udf("dataset", "nElectron",     "Electron_pt",
     "Electron_pfRelIso03_all")).describe()
 
 
-zpeak_udf = pandas_udf(compute_zpeak, IntegerType(), PandasUDFType.SCALAR)
+zpeak_udf = pandas_udf(compute_zpeak, DoubleType(), PandasUDFType.SCALAR)
 numpyret2 = slim.select(zpeak_udf(
     "dataset",
+    "nElectron",
     "Electron_pt",
     "Electron_eta",
     "Electron_phi",
@@ -289,6 +237,7 @@ numpyret2 = slim.select(zpeak_udf(
     "Electron_cutBased",
     "Electron_pdgId",
     "Electron_pfRelIso03_all",
+    "nMuon",
     "Muon_pt",
     "Muon_eta",
     "Muon_phi",
@@ -298,8 +247,9 @@ numpyret2 = slim.select(zpeak_udf(
     "Muon_pfRelIso04_all"))
 
 # This triggers the accumulators
-numpyret2.describe()
+print(numpyret2.describe().toPandas())
 
 print(hists["zMass"].value.values())
 
+#slim.write.parquet("slim")
 

@@ -73,6 +73,7 @@ slim = df.select(df.event,
                  df.Electron_cutBased,
                  df.Electron_pdgId,
                  df.Electron_pfRelIso03_all,
+                 df.nMuon,
                  df.Muon_pt,
                  df.Muon_eta,
                  df.Muon_phi,
@@ -86,6 +87,7 @@ slim = df.select(df.event,
 
 
 def compute_zpeak(dataset,
+                  nElectron, 
                   Electron_pt,
                   Electron_eta,
                   Electron_phi,
@@ -93,6 +95,7 @@ def compute_zpeak(dataset,
                   Electron_cutBased,
                   Electron_pdgId,
                   Electron_pfRelIso03_all,
+                  nMuon,
                   Muon_pt,
                   Muon_eta,
                   Muon_phi,
@@ -103,58 +106,32 @@ def compute_zpeak(dataset,
     global hist, dataset_axis, channel_cat_axis
     tic = time.time()
 
-    almost_electrons = awk.JaggedArray.zip(
-        {"pt": awk.JaggedArray.fromiter(Electron_pt),
-         "eta": awk.JaggedArray.fromiter(Electron_eta),
-         "phi": awk.JaggedArray.fromiter(Electron_phi),
-         "mass": awk.JaggedArray.fromiter(Electron_mass),
-         "cutBased": awk.JaggedArray.fromiter(Electron_cutBased),
-         "pdgId": awk.JaggedArray.fromiter(Electron_pdgId),
-         "pfRelIso03_all": awk.JaggedArray.fromiter(Electron_pfRelIso03_all)
-    })
-
-    electrons = JaggedCandidateArray.candidatesfromoffsets(almost_electrons.offsets,
-                                                           pt=almost_electrons["pt"].content,
-                                                           eta=almost_electrons["eta"].content,
-                                                           phi=almost_electrons["phi"].content,
-                                                           mass=almost_electrons["mass"].content,
-                                                           cutBased=almost_electrons["cutBased"].content,
-                                                           pdgId=almost_electrons["pdgId"].content,
-                                                           pfRelIso03_all=almost_electrons["pfRelIso03_all"].content
-                                                           )
+    electrons = JaggedCandidateArray.candidatesfromcounts(
+            nElectron.array,
+            pt=Electron_pt.array[0].base,
+            eta=Electron_eta.array[0].base,
+            phi=Electron_phi.array[0].base,
+            mass=Electron_mass.array[0].base,
+            cutBased=Electron_cutBased.array[0].base,
+            pdgId=Electron_pdgId.array[0].base,
+            pfRelIso03_all=Electron_pfRelIso03_all.array[0].base,
+        )
 
     ele = electrons[(electrons.pt > 20) &
                     (np.abs(electrons.eta) < 2.5) &
                     (electrons.cutBased >= 4)]
 
-    almost_muons = awk.JaggedArray.zip(
-        {
-            "pt": awk.JaggedArray.fromiter(Muon_pt),
-            "eta": awk.JaggedArray.fromiter(Muon_eta),
-            "phi": awk.JaggedArray.fromiter(Muon_phi),
-            "mass": awk.JaggedArray.fromiter(Muon_mass),
-            "tightId": awk.JaggedArray.fromiter(Muon_tightId),
-            "pdgId": awk.JaggedArray.fromiter(Muon_pdgId),
-            "pfRelIso04_all": awk.JaggedArray.fromiter(Muon_pfRelIso04_all)
-        })
 
-    muons = JaggedCandidateArray.candidatesfromoffsets(almost_muons.offsets,
-                                                       pt=almost_muons[
-                                                           "pt"].content,
-                                                       eta=almost_muons[
-                                                           "eta"].content,
-                                                       phi=almost_muons[
-                                                           "phi"].content,
-                                                       mass=almost_muons[
-                                                           "mass"].content,
-                                                       tightId=
-                                                       almost_muons[
-                                                           "tightId"].content,
-                                                       pdgId=almost_muons[
-                                                           "pdgId"].content,
-                                                       pfRelIso04_all=
-                                                       almost_muons[
-                                                           "pfRelIso04_all"].content)
+    muons = JaggedCandidateArray.candidatesfromcounts(
+            nMuon.values,
+            pt=Muon_pt.array[0].base,
+            eta=Muon_eta.array[0].base,
+            phi=Muon_phi.array[0].base,
+            mass=Muon_mass.array[0].base,
+            tightId=Muon_tightId.array[0].base,
+            pdgId=Muon_pdgId.array[0].base,
+            pfRelIso04_all=Muon_pfRelIso04_all.array[0].base,
+        )
 
     mu = muons[(muons.pt > 20) &
                (np.abs(muons.eta) < 2.4) &
@@ -252,6 +229,7 @@ slim.select(foo_udf("dataset", "nElectron",     "Electron_pt",
 zpeak_udf = pandas_udf(compute_zpeak, DoubleType(), PandasUDFType.SCALAR)
 numpyret2 = slim.select(zpeak_udf(
     "dataset",
+    "nElectron",
     "Electron_pt",
     "Electron_eta",
     "Electron_phi",
@@ -259,6 +237,7 @@ numpyret2 = slim.select(zpeak_udf(
     "Electron_cutBased",
     "Electron_pdgId",
     "Electron_pfRelIso03_all",
+    "nMuon",
     "Muon_pt",
     "Muon_eta",
     "Muon_phi",

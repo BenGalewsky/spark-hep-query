@@ -12,6 +12,8 @@ from pyspark.sql.types import DoubleType
 
 import fnal_column_analysis_tools.hist as hist
 from fnal_column_analysis_tools.analysis_objects import JaggedCandidateArray
+import fnal_column_analysis_tools.lookup_tools as lookup_tools
+
 
 
 if len(sys.argv) != 2:
@@ -49,6 +51,14 @@ hists['zMass'] = {
     "channel_cat_axis": hist.Cat("channel", "dilepton flavor")
 }
 
+# Create a broadcast variable for the non-event data
+weightsext = lookup_tools.extractor()
+correctionDescriptions = open("newCorrectionFiles.txt").readlines()
+weightsext.add_weight_sets(correctionDescriptions)
+weightsext.finalize()
+weights_eval = weightsext.make_evaluator()
+
+non_event_data = spark.sparkContext.broadcast(weights_eval)
 
 # ZPeak UDF that reduces data to a zMass histogram
 def compute_zpeak(dataset,
@@ -69,7 +79,7 @@ def compute_zpeak(dataset,
                   Muon_pdgId,
                   Muon_pfRelIso04_all):
 
-    global hists
+    global hists, non_event_data
     tic = time.time()
 
     electrons = JaggedCandidateArray.candidatesfromcounts(
@@ -87,6 +97,12 @@ def compute_zpeak(dataset,
                     (np.abs(electrons.eta) < 2.5) &
                     (electrons.cutBased >= 4)]
 
+
+    # Just to demonstrate broadcast variables
+    weights_eval = non_event_data.value
+    electrons['SF'] = weights_eval["eleScaleFactor_TightId_POG"](
+        electrons.eta,
+        electrons.pt)
 
     muons = JaggedCandidateArray.candidatesfromcounts(
             nMuon.values,

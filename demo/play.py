@@ -3,6 +3,7 @@ from pyspark.sql.functions import pandas_udf, PandasUDFType
 from pyspark.accumulators import AccumulatorParam
 from pyspark.shell import spark
 from collections import OrderedDict
+import time
 
 import awkward as awk
 import numpy as np
@@ -10,9 +11,8 @@ import pandas as pd
 import re
 import fnal_column_analysis_tools.hist as hist
 
-from pyspark.sql.types import IntegerType
+from pyspark.sql.types import IntegerType, DoubleType
 
-import aghast.connect.numpy as connect_numpy
 from fnal_column_analysis_tools.analysis_objects import JaggedCandidateArray
 
 
@@ -62,7 +62,7 @@ class NumpyVectorAccumulatorParam(AccumulatorParam):
 
 spark.conf.set("spark.sql.execution.arrow.enabled", "true")
 spark.conf.set("spark.sql.execution.arrow.fallback.enabled", "false")
-df = spark.read.parquet("file:/Users/bengal1/dev/IRIS-HEP/data/bignano.parquet")
+df = spark.read.parquet("file:/Users/ncsmith/src/spark-hep-query/demo/bignano.parquet")
 df = df.withColumn("dataset", functions.lit("my_dataset"))
 slim = df.select(df.event,
                  df.nElectron,
@@ -84,37 +84,6 @@ slim = df.select(df.event,
                  )
 
 
-BINS = 10
-HIST_RANGE = (0.05, 0.2)
-histograms = {
-    "zMass": {
-        "bins": 10,
-        "range": (0.05, 0.2),
-        "accumulator": spark.sparkContext.accumulator(
-            connect_numpy.fromnumpy(
-                np.histogram([], bins=BINS, range=HIST_RANGE)),
-            NumpyVectorAccumulatorParam())
-    },
-    "lepton_pt": {
-        "bins": 10,
-        "range": (0.05, 0.2),
-        "accumulator": spark.sparkContext.accumulator(
-            connect_numpy.fromnumpy(
-                np.histogram([], bins=BINS, range=HIST_RANGE)),
-            NumpyVectorAccumulatorParam())
-    },
-    "profile": {
-        "bins": 10,
-        "range": (0.05, 0.2),
-        "accumulator": spark.sparkContext.accumulator(
-            connect_numpy.fromnumpy(
-                np.histogram([], bins=BINS, range=HIST_RANGE)),
-            NumpyVectorAccumulatorParam())
-    },
-}
-
-
-
 
 def compute_zpeak(dataset,
                   Electron_pt,
@@ -131,7 +100,8 @@ def compute_zpeak(dataset,
                   Muon_tightId,
                   Muon_pdgId,
                   Muon_pfRelIso04_all):
-    global histograms, hist, dataset_axis, channel_cat_axis
+    global hist, dataset_axis, channel_cat_axis
+    tic = time.time()
 
     almost_electrons = awk.JaggedArray.zip(
         {"pt": awk.JaggedArray.fromiter(Electron_pt),
@@ -227,9 +197,9 @@ def compute_zpeak(dataset,
                    weight=weight.flatten())
         zMassHist.add(zMass)
 
-        # zMassHist["accumulator"].add(connect_numpy.fromnumpy(zMass))
 
-    return pd.Series(np.zeros(Electron_pt.size))
+    dt = time.time() - tic
+    return pd.Series(np.ones(Electron_pt.size) * dt/Electron_pt.size)
 
 # foo_udf = pandas_udf(foo, IntegerType(), PandasUDFType.SCALAR)
 # slim.select(foo_udf("Electron_pt")).describe()
@@ -268,7 +238,7 @@ def foo(dataset,
     return nElectron
 
 
-foo_udf = pandas_udf(foo, IntegerType(), PandasUDFType.SCALAR)
+foo_udf = pandas_udf(foo, DoubleType(), PandasUDFType.SCALAR)
 
 slim.select(foo_udf("dataset", "nElectron",     "Electron_pt",
     "Electron_eta",
@@ -279,7 +249,7 @@ slim.select(foo_udf("dataset", "nElectron",     "Electron_pt",
     "Electron_pfRelIso03_all")).describe()
 
 
-zpeak_udf = pandas_udf(compute_zpeak, IntegerType(), PandasUDFType.SCALAR)
+zpeak_udf = pandas_udf(compute_zpeak, DoubleType(), PandasUDFType.SCALAR)
 numpyret2 = slim.select(zpeak_udf(
     "dataset",
     "Electron_pt",
@@ -298,8 +268,9 @@ numpyret2 = slim.select(zpeak_udf(
     "Muon_pfRelIso04_all"))
 
 # This triggers the accumulators
-numpyret2.describe()
+print(numpyret2.describe().toPandas())
 
 print(hists["zMass"].value.values())
 
+#slim.write.parquet("slim")
 

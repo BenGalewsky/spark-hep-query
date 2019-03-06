@@ -1,20 +1,25 @@
-from pyspark.sql import functions
-from pyspark.sql.functions import pandas_udf, PandasUDFType
-from pyspark.accumulators import AccumulatorParam
-from pyspark.shell import spark
-from collections import OrderedDict
 import time
+from collections import OrderedDict
+import sys
 
-import awkward as awk
 import numpy as np
 import pandas as pd
-import re
+from pyspark.accumulators import AccumulatorParam
+from pyspark.shell import spark
+from pyspark.sql import functions
+from pyspark.sql.functions import pandas_udf, PandasUDFType
+from pyspark.sql.types import DoubleType
+
 import fnal_column_analysis_tools.hist as hist
-
-from pyspark.sql.types import IntegerType, DoubleType
-
 from fnal_column_analysis_tools.analysis_objects import JaggedCandidateArray
 
+
+if len(sys.argv) != 2:
+    sys.stderr.write("Please provide a path to your root file")
+    sys.exit(-1)
+else:
+    root_file_name = sys.argv[1]
+    print("Analyzing "+root_file_name)
 
 # Implement accumulatorparam class for FNAL Hists
 class FLNAL_Hist_AccumulatorParam(AccumulatorParam):
@@ -144,7 +149,7 @@ zpeak_udf = pandas_udf(compute_zpeak, DoubleType(), PandasUDFType.SCALAR)
 
 spark.conf.set("spark.sql.execution.arrow.enabled", "true")
 spark.conf.set("spark.sql.execution.arrow.fallback.enabled", "false")
-df = spark.read.parquet("file:/Users/bengal1/dev/IRIS-HEP/data/bignano.parquet")
+df = spark.read.parquet("file:"+root_file_name)
 df = df.withColumn("dataset", functions.lit("my_dataset"))
 slim = df.select(df.event,
                  df.nElectron,

@@ -6,6 +6,10 @@ physics data.
 [![codecov](https://codecov.io/gh/BenGalewsky/spark-hep-query/branch/master/graph/badge.svg)](https://codecov.io/gh/BenGalewsky/spark-hep-query)
 
 ## How to Test
+We use `unittest` to verify the system. Run the tests as 
+```bash
+python3 -m unittest
+```
 
 
 ### Verify Code Coverage

@@ -2,6 +2,8 @@
 This service provides a scalable back end to columnar analysis of high energy
 physics data.
 
+[![Build Status](https://travis-ci.org/BenGalewsky/spark-hep-query.svg?branch=master)](https://travis-ci.org/BenGalewsky/spark-hep-query)
+
 ## How to Test
 
 

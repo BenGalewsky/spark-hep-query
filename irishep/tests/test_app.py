@@ -27,19 +27,65 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock, MagicMock
 
+import pyspark.sql
+from pyspark.sql import SparkSession
+
+from irishep.config import Config
+from irishep.datasets.dataset_manager import DatasetManager
 from irishep.app import App
 
 
 class TestApp(unittest.TestCase):
     def test_app_create(self):
-        with patch('pyspark.SparkContext.__init__',
-                   return_value=None) as mock_spark:
-            a = App()
-            self.assertTrue(a.sc)
-            mock_spark.assert_called_with(app_name='spark-hep', master='local')
+        builder = pyspark.sql.session.SparkSession.Builder()
+        mock_session = MagicMock(SparkSession)
 
-            mock_spark.clear()
-            App(app_name="foo", master="spark-master")
-            mock_spark.assert_called_with(app_name='foo', master='spark-master')
+        builder.master = Mock(return_value=builder)
+        builder.appName = Mock(return_value=builder)
+        builder.getOrCreate = Mock(return_value=mock_session)
+
+        mock_dataset_manager = MagicMock(DatasetManager)
+
+        with patch('pyspark.sql.SparkSession.builder', new=builder):
+            a = App(Config(
+                app_name="foo",
+                master="spark-master",
+                dataset_manager=mock_dataset_manager
+            ))
+
+            assert a
+            builder.master.assert_called_with("spark-master")
+            builder.appName.assert_called_with("foo")
+            builder.getOrCreate.assert_called_once()
+            self.assertEqual(a.dataset_manager, mock_dataset_manager)
+
+    def _construct_app(self, config):
+        builder = pyspark.sql.session.SparkSession.Builder()
+        mock_session = MagicMock(SparkSession)
+        builder.getOrCreate = Mock(return_value=mock_session)
+        with patch('pyspark.sql.SparkSession.builder', new=builder):
+            return App(config)
+
+    def test_provisioned_dataset_manager(self):
+        builder = pyspark.sql.session.SparkSession.Builder()
+        mock_session = MagicMock(SparkSession)
+        builder.getOrCreate = Mock(return_value=mock_session)
+
+        mock_datasource_manager = Mock(DatasetManager)
+        mock_datasource_manager.provisioned = True
+        a = self._construct_app(Config(dataset_manager=mock_datasource_manager))
+        self.assertTrue(a.datasets)
+
+    def test_unprovisioned_dataset_manager(self):
+        builder = pyspark.sql.session.SparkSession.Builder()
+        mock_session = MagicMock(SparkSession)
+        builder.getOrCreate = Mock(return_value=mock_session)
+
+        mock_datasource_manager = Mock(DatasetManager)
+        mock_datasource_manager.provisioned = False
+        mock_datasource_manager.provision = Mock()
+        a = self._construct_app(Config(dataset_manager=mock_datasource_manager))
+        self.assertTrue(a.datasets)
+        mock_datasource_manager.provision.assert_called_once()

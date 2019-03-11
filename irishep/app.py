@@ -27,9 +27,24 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-from pyspark import SparkContext
+from pyspark.sql import SparkSession
 
 
 class App:
     def __init__(self, config):
-        self.sc = SparkContext(master=config.master, appName=config.app_name)
+        self.spark = SparkSession.builder \
+            .master(config.master) \
+            .appName(config.app_name) \
+            .getOrCreate()
+
+        self.dataset_manager = config.dataset_manager
+
+    @property
+    def datasets(self):
+        """
+        Fetch an initialized dataset manager instance
+        :return: the dataset manager instance
+        """
+        if not self.dataset_manager.provisioned:
+            self.dataset_manager.provision(self)
+        return self.dataset_manager

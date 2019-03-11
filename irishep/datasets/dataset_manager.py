@@ -26,27 +26,22 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from abc import ABCMeta, abstractmethod
 
-class Config:
-    """
-    Specification of spark query service configuration options.
 
-    Parameters
-    ----------
-        local_dataset_file: String path expression, optional
-            Path to a csv file holding the names of datasets and their location
-            on the local filesystem
-        master: String, optional
-            Reference to spark master. Defaults to local
-        app_name: String, optional
-            String name that will be passed to spark to reference this
-            application
-    """
-    def __init__(self,
-                 dataset_manager=None,
-                 master="local",
-                 app_name="spark-hep"):
+class DatasetManager(metaclass=ABCMeta):
+    @abstractmethod
+    def provision(self, app):
+        """
+        Take whatever steps to provision the dataset manager. This is done
+        after the application has been initialized
+        :param app: The initialized Query Service App
+        :return: None
+        """
 
-        self.dataset_manager = dataset_manager
-        self.master = master
-        self.app_name = app_name
+    @abstractmethod
+    def get_names(self):
+        """
+        Get the list of dataset names served up by this manager
+        :return: List of dataset names
+        """

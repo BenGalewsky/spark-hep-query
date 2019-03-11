@@ -5,8 +5,13 @@ python:
 install:
   - pip install -r requirements.txt
 
+before_script:
+  - pip --version
+  - pip freeze
+
 script:
-  coverage run -m unittest
+  - flake8 --exclude demo
+  - coverage run -m unittest
 
 after_success:
   - codecov

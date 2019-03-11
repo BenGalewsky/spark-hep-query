@@ -34,11 +34,12 @@ from irishep.app import App
 
 class TestApp(unittest.TestCase):
     def test_app_create(self):
-        with patch('pyspark.SparkContext.__init__', return_value=None) as mock_spark:
+        with patch('pyspark.SparkContext.__init__',
+                   return_value=None) as mock_spark:
             a = App()
             self.assertTrue(a.sc)
-            mock_spark.assert_called_with(appName='spark-hep', master='local')
+            mock_spark.assert_called_with(app_name='spark-hep', master='local')
 
             mock_spark.clear()
-            App(appName="foo", master="spark-master")
-            mock_spark.assert_called_with(appName='foo', master='spark-master')
+            App(app_name="foo", master="spark-master")
+            mock_spark.assert_called_with(app_name='foo', master='spark-master')

@@ -28,6 +28,7 @@
 
 from pyspark import SparkContext
 
+
 class App:
-    def __init__(self, master="local", appName="spark-hep"):
-        self.sc = SparkContext(master=master, appName=appName)
+    def __init__(self, master="local", app_name="spark-hep"):
+        self.sc = SparkContext(master=master, app_name=app_name)

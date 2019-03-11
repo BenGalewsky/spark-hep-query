@@ -27,9 +27,26 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-from pyspark import SparkContext
+class Config:
+    """
+    Specification of spark query service configuration options.
 
+    Parameters
+    ----------
+        local_dataset_file: String path expression, optional
+            Path to a csv file holding the names of datasets and their location
+            on the local filesystem
+        master: String, optional
+            Reference to spark master. Defaults to local
+        app_name: String, optional
+            String name that will be passed to spark to reference this
+            application
+    """
+    def __init__(self,
+                 local_dataset_file=None,
+                 master="local",
+                 app_name="spark-hep"):
 
-class App:
-    def __init__(self, config):
-        self.sc = SparkContext(master=config.master, appName=config.app_name)
+        self.local_dataset_file = local_dataset_file
+        self.master = master
+        self.app_name = app_name

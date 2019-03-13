@@ -69,20 +69,12 @@ class TestApp(unittest.TestCase):
             return App(config)
 
     def test_provisioned_dataset_manager(self):
-        builder = pyspark.sql.session.SparkSession.Builder()
-        mock_session = MagicMock(SparkSession)
-        builder.getOrCreate = Mock(return_value=mock_session)
-
         mock_datasource_manager = Mock(DatasetManager)
         mock_datasource_manager.provisioned = True
         a = self._construct_app(Config(dataset_manager=mock_datasource_manager))
         self.assertTrue(a.datasets)
 
     def test_unprovisioned_dataset_manager(self):
-        builder = pyspark.sql.session.SparkSession.Builder()
-        mock_session = MagicMock(SparkSession)
-        builder.getOrCreate = Mock(return_value=mock_session)
-
         mock_datasource_manager = Mock(DatasetManager)
         mock_datasource_manager.provisioned = False
         mock_datasource_manager.provision = Mock()

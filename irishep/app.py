@@ -29,12 +29,16 @@
 
 from pyspark.sql import SparkSession
 
+from irishep.datasets.dataset import Dataset
+
 
 class App:
     def __init__(self, config):
         self.spark = SparkSession.builder \
             .master(config.master) \
             .appName(config.app_name) \
+            .config("spark.jars.packages",
+                    "org.diana-hep:spark-root_2.11:0.1.15") \
             .getOrCreate()
 
         self.dataset_manager = config.dataset_manager
@@ -48,3 +52,27 @@ class App:
         if not self.dataset_manager.provisioned:
             self.dataset_manager.provision(self)
         return self.dataset_manager
+
+    def read_dataset(self, dataset_name):
+        """
+        Creates a dataset from files on disk. For now assumes that the files are
+        in ROOT format
+        :param dataset_name: Name of the dataset to read. Gets filenames from
+            the dataset_manager
+        :return: A populated Dataset instance
+        """
+        files = self.datasets.get_file_list(dataset_name)
+        print(files)
+
+        result_df = None
+
+        # Sparkroot can't handle list of files
+        for file in files:
+            file_df = self.spark.read.format("org.dianahep.sparkroot") \
+                .option("tree", "Events") \
+                .load(file)
+
+            # So just append each file's datafrane into one big one
+            result_df = file_df if not result_df else result_df.union(file_df)
+
+        return Dataset(dataset_name, result_df)

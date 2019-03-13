@@ -20,8 +20,13 @@ the same dataset name.
 An instance of the dataset manager is created as part of the `config` object 
 and passed into the application initializer.
 
-The first operation on this dataset manager just returns a list with each of 
-the dataset names.
+### Reading a Dataset into Memory
+Once you have a dataset name, you can provide it to the application object to 
+have all of the assoicated files loaded into the cluster for analysis. 
+
+Use the `read_dataset` method on the `App` object with the dataset name. You 
+will receieve a `Dataset` object which represents all of the events. We have
+implemented a `count` method on the dataset to return the number of events.
 
 ## How to Test
 We use `unittest` to verify the system. Run the tests as 

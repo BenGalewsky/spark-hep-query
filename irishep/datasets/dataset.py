@@ -26,30 +26,11 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from abc import ABCMeta, abstractmethod
 
+class Dataset:
+    def __init__(self, name, dataframe):
+        self.name = name
+        self.dataframe = dataframe
 
-class DatasetManager(metaclass=ABCMeta):
-    @abstractmethod
-    def provision(self, app):
-        """
-        Take whatever steps to provision the dataset manager. This is done
-        after the application has been initialized
-        :param app: The initialized Query Service App
-        :return: None
-        """
-
-    @abstractmethod
-    def get_names(self):
-        """
-        Get the list of dataset names served up by this manager
-        :return: List of dataset names
-        """
-
-    @abstractmethod
-    def get_file_list(self, dataset_name):
-        """
-        Find the paths to the files associated with the given dataset name
-        :param dataset_name:
-        :return: list of string pathnames
-        """
+    def count(self):
+        return self.dataframe.count()

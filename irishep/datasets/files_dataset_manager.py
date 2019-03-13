@@ -50,7 +50,7 @@ class FilesDatasetManager(DatasetManager):
         :param app: The initialized Query Service App
         :return: None
         """
-        self.dataframe = app.spark.read.csv(self.database_file, header=True)
+        self.df = app.spark.read.csv(self.database_file, header=True)
         self.provisioned = True
         return self
 
@@ -59,5 +59,10 @@ class FilesDatasetManager(DatasetManager):
         return the names of the datasets in the database
         :return: list of dataset names
         """
-        distinct_names = self.dataframe.select(self.dataframe.name).distinct()
+        distinct_names = self.df.select(self.df.name).distinct()
         return [r.name for r in distinct_names.collect()]
+
+    def get_file_list(self, dataset_name):
+        paths = self.df.select(self.df.path).filter(
+            self.df.name == dataset_name)
+        return [r.path for r in paths.collect()]

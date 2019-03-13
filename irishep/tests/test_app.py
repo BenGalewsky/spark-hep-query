@@ -27,7 +27,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import unittest
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import patch, Mock, MagicMock, call
 
 import pyspark.sql
 from pyspark.sql import SparkSession
@@ -81,3 +81,41 @@ class TestApp(unittest.TestCase):
         a = self._construct_app(Config(dataset_manager=mock_datasource_manager))
         self.assertTrue(a.datasets)
         mock_datasource_manager.provision.assert_called_once()
+
+    def test_read_dataset(self):
+        # Create a datasource manager that returns our two files
+        mock_datasource_manager = Mock(DatasetManager)
+        mock_datasource_manager.provisioned = True
+        mock_datasource_manager.get_file_list = Mock(
+            return_value=["/tmp/foo.root", "/tmp/bar.root"])
+
+        a = self._construct_app(Config(dataset_manager=mock_datasource_manager))
+
+        # There will be dataframes generated for each file as part of the load
+        mock_file_dataframes = [Mock(pyspark.sql.DataFrame),
+                                Mock(pyspark.sql.DataFrame)]
+        a.spark.read.format = Mock(return_value=a.spark)
+        a.spark.option = Mock(return_value=a.spark)
+        a.spark.load = Mock(side_effect=mock_file_dataframes)
+
+        # The first dataframe will be union'ed with the second, resulting in a
+        # new dataframe
+        mock_union_dataframe = Mock(pyspark.sql.DataFrame)
+        mock_file_dataframes[0].union = Mock(return_value=mock_union_dataframe)
+
+        # Perform the read
+        dataset = a.read_dataset("mydataset")
+
+        mock_datasource_manager.get_file_list.assert_called_with("mydataset")
+        a.spark.read.format.assert_called_with("org.dianahep.sparkroot")
+        print(a.spark.load.call_args_list)
+        a.spark.load.assert_has_calls(
+            [call("/tmp/foo.root"), call("/tmp/bar.root")])
+
+        self.assertEqual(dataset.name, "mydataset")
+        self.assertEqual(dataset.dataframe, mock_union_dataframe)
+
+        # Verify that the first file's dataframe was unioned with the
+        # second file
+        mock_file_dataframes[0].union.assert_called_with(
+            mock_file_dataframes[1])

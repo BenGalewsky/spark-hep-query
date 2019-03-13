@@ -25,26 +25,39 @@
 # CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+from irishep.datasets.dataset_manager import DatasetManager
 
 
-from pyspark.sql import SparkSession
+class FilesDatasetManager(DatasetManager):
+    """
+    Dataset manager that is backed by a csv file. The file must contain entries
+    for each file associated with datasets.
 
+    The format of the file is:
+    name, path
+    Where "name" is the dataset name, and "path" is the path to the underlying
+    file. Datasets can be made up of multiple files. This is represented by
+    mulitple entries sharing the same name.
+    """
+    def __init__(self, database_file):
+        self.database_file = database_file
+        self.provisioned = False
 
-class App:
-    def __init__(self, config):
-        self.spark = SparkSession.builder \
-            .master(config.master) \
-            .appName(config.app_name) \
-            .getOrCreate()
-
-        self.dataset_manager = config.dataset_manager
-
-    @property
-    def datasets(self):
+    def provision(self, app):
         """
-        Fetch an initialized dataset manager instance
-        :return: the dataset manager instance
+        Provision the manager after the app has been set up by reading the csv
+        file and storing the resulting dataframe
+        :param app: The initialized Query Service App
+        :return: None
         """
-        if not self.dataset_manager.provisioned:
-            self.dataset_manager.provision(self)
-        return self.dataset_manager
+        self.dataframe = app.spark.read.csv(self.database_file, header=True)
+        self.provisioned = True
+        return self
+
+    def get_names(self):
+        """
+        return the names of the datasets in the database
+        :return: list of dataset names
+        """
+        distinct_names = self.dataframe.select(self.dataframe.name).distinct()
+        return [r.name for r in distinct_names.collect()]

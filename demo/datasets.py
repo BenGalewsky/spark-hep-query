@@ -26,25 +26,13 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from irishep.config import Config
+from irishep.datasets.files_dataset_manager import FilesDatasetManager
+from irishep.app import App
 
-from pyspark.sql import SparkSession
+config = Config(
+    dataset_manager=FilesDatasetManager(database_file="demo_datasets.csv")
+)
+app = App(config=config)
+print(app.datasets.get_names())
 
-
-class App:
-    def __init__(self, config):
-        self.spark = SparkSession.builder \
-            .master(config.master) \
-            .appName(config.app_name) \
-            .getOrCreate()
-
-        self.dataset_manager = config.dataset_manager
-
-    @property
-    def datasets(self):
-        """
-        Fetch an initialized dataset manager instance
-        :return: the dataset manager instance
-        """
-        if not self.dataset_manager.provisioned:
-            self.dataset_manager.provision(self)
-        return self.dataset_manager

@@ -25,26 +25,41 @@
 # CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+import unittest
+from unittest.mock import MagicMock, Mock
+
+from pyspark.sql import DataFrame
+
+from irishep.datasets.files_dataset_manager import FilesDatasetManager
 
 
-from pyspark.sql import SparkSession
+class Test_FilesDataset(unittest.TestCase):
+    def test_init_database(self):
+        dsm = FilesDatasetManager("/foo/bar")
+        self.assertFalse(dsm.provisioned)
+        self.assertEqual(dsm.database_file, "/foo/bar")
 
+        mock_app = MagicMock()
+        mock_app.spark = MagicMock()
+        mock_app.spark.read = MagicMock()
+        mock_dataframe = MagicMock(DataFrame)
+        mock_app.spark.read.csv = Mock(return_value=mock_dataframe)
+        dsm.provision(mock_app)
 
-class App:
-    def __init__(self, config):
-        self.spark = SparkSession.builder \
-            .master(config.master) \
-            .appName(config.app_name) \
-            .getOrCreate()
+        mock_app.spark.read.csv.assert_called_with("/foo/bar", header=True)
+        self.assertTrue(dsm.provisioned)
 
-        self.dataset_manager = config.dataset_manager
+    def test_get_names(self):
+        dsm = FilesDatasetManager("/foo/bar")
+        mock_dataframe = MagicMock(DataFrame)
+        mock_dataframe.name = "Name"
+        dsm.dataframe = mock_dataframe
+        mock_dataframe.select = Mock(return_value=mock_dataframe)
+        mock_dataframe.distinct = Mock(return_value=mock_dataframe)
 
-    @property
-    def datasets(self):
-        """
-        Fetch an initialized dataset manager instance
-        :return: the dataset manager instance
-        """
-        if not self.dataset_manager.provisioned:
-            self.dataset_manager.provision(self)
-        return self.dataset_manager
+        ResultType = type('ResultType', (object,), {})
+        result = [ResultType(), ResultType()]
+        result[0].name = 'a'
+        result[1].name = 'b'
+        mock_dataframe.collect = Mock(return_value=result)
+        self.assertEqual(['a', 'b'], dsm.get_names())

@@ -26,25 +26,22 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from abc import ABCMeta, abstractmethod
 
-from pyspark.sql import SparkSession
 
-
-class App:
-    def __init__(self, config):
-        self.spark = SparkSession.builder \
-            .master(config.master) \
-            .appName(config.app_name) \
-            .getOrCreate()
-
-        self.dataset_manager = config.dataset_manager
-
-    @property
-    def datasets(self):
+class DatasetManager(metaclass=ABCMeta):
+    @abstractmethod
+    def provision(self, app):
         """
-        Fetch an initialized dataset manager instance
-        :return: the dataset manager instance
+        Take whatever steps to provision the dataset manager. This is done
+        after the application has been initialized
+        :param app: The initialized Query Service App
+        :return: None
         """
-        if not self.dataset_manager.provisioned:
-            self.dataset_manager.provision(self)
-        return self.dataset_manager
+
+    @abstractmethod
+    def get_names(self):
+        """
+        Get the list of dataset names served up by this manager
+        :return: List of dataset names
+        """

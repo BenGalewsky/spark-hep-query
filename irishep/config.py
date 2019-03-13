@@ -27,24 +27,26 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-from pyspark.sql import SparkSession
+class Config:
+    """
+    Specification of spark query service configuration options.
 
+    Parameters
+    ----------
+        local_dataset_file: String path expression, optional
+            Path to a csv file holding the names of datasets and their location
+            on the local filesystem
+        master: String, optional
+            Reference to spark master. Defaults to local
+        app_name: String, optional
+            String name that will be passed to spark to reference this
+            application
+    """
+    def __init__(self,
+                 dataset_manager=None,
+                 master="local",
+                 app_name="spark-hep"):
 
-class App:
-    def __init__(self, config):
-        self.spark = SparkSession.builder \
-            .master(config.master) \
-            .appName(config.app_name) \
-            .getOrCreate()
-
-        self.dataset_manager = config.dataset_manager
-
-    @property
-    def datasets(self):
-        """
-        Fetch an initialized dataset manager instance
-        :return: the dataset manager instance
-        """
-        if not self.dataset_manager.provisioned:
-            self.dataset_manager.provision(self)
-        return self.dataset_manager
+        self.dataset_manager = dataset_manager
+        self.master = master
+        self.app_name = app_name

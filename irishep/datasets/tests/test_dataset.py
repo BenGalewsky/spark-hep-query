@@ -21,6 +21,20 @@ class TestDataset(unittest.TestCase):
         self.assertEqual(42, count)
         mock_dataframe.count.assert_called_once()
 
+    def test_columns(self):
+        mock_dataframe = Mock(pyspark.sql.DataFrame)
+        mock_dataframe.columns = ['a','b','c']
+        a_dataset = Dataset("my dataset", mock_dataframe)
+        cols = a_dataset.columns
+        self.assertEqual(cols, ['a','b','c'])
+
+    def test_columns_with_types(self):
+        mock_dataframe = Mock(pyspark.sql.DataFrame)
+        mock_dataframe.dtypes = [('a', 'int'),('b', 'string')]
+        a_dataset = Dataset("my dataset", mock_dataframe)
+        cols = a_dataset.columns_with_types
+        self.assertEqual(cols, [('a', 'int'),('b', 'string')])
+
 
 if __name__ == '__main__':
     unittest.main()

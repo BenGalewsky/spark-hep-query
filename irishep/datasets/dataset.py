@@ -34,3 +34,11 @@ class Dataset:
 
     def count(self):
         return self.dataframe.count()
+
+    @property
+    def columns(self):
+        return self.dataframe.columns
+
+    @property
+    def columns_with_types(self):
+        return self.dataframe.dtypes

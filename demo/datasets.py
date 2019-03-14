@@ -36,6 +36,8 @@ config = Config(
 app = App(config=config)
 print(app.datasets.get_names())
 
-dataset = app.read_dataset("ZJetsToNuNu_HT-600To800_13TeV-madgraph")
+dataset = app.read_dataset("DY Jets")
 print(dataset.name, dataset.count())
+print(dataset.columns)
+print (dataset.columns_with_types)
 

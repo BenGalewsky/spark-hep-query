@@ -27,10 +27,17 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
+from pyspark.sql.functions import lit
+
+
 class Dataset:
     def __init__(self, name, dataframe):
         self.name = name
-        self.dataframe = dataframe
+
+        if 'dataset' not in dataframe.columns:
+            self.dataframe = dataframe.withColumn("dataset", lit(name))
+        else:
+            self.dataframe = dataframe
 
     def count(self):
         return self.dataframe.count()

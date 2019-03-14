@@ -101,6 +101,7 @@ class TestApp(unittest.TestCase):
         # The first dataframe will be union'ed with the second, resulting in a
         # new dataframe
         mock_union_dataframe = Mock(pyspark.sql.DataFrame)
+        mock_union_dataframe.columns = ['dataset', 'a', 'b']
         mock_file_dataframes[0].union = Mock(return_value=mock_union_dataframe)
 
         # Perform the read

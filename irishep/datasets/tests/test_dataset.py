@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pyspark.sql
 
@@ -7,14 +7,31 @@ from irishep.datasets.dataset import Dataset
 
 
 class TestDataset(unittest.TestCase):
-    def test_constuctor(self):
+    def _generate_mock_dataframe(self):
         mock_dataframe = Mock(pyspark.sql.DataFrame)
+        mock_dataframe.columns = ['dataset', 'run']
+        return mock_dataframe
+
+    def test_constuctor(self):
+        # Mocking with the spark sql lit function is a bit tricky. We patch
+        # _active_spark_context to handle the interactions with the jvm
+        mock_lit = Mock()
+        with patch('pyspark.SparkContext._active_spark_context', new=mock_lit):
+            mock_dataframe = self._generate_mock_dataframe()
+            mock_dataframe.columns = ['run', 'event']
+            mock_dataframe.withColumn = Mock(return_value=mock_dataframe)
+            a_dataset = Dataset("my dataset", mock_dataframe)
+            self.assertEqual(a_dataset.name, "my dataset")
+            self.assertEqual(a_dataset.dataframe, mock_dataframe)
+
+    def test_constuctor_with_dataset_name_in_dataframe(self):
+        mock_dataframe = self._generate_mock_dataframe()
         a_dataset = Dataset("my dataset", mock_dataframe)
         self.assertEqual(a_dataset.name, "my dataset")
         self.assertEqual(a_dataset.dataframe, mock_dataframe)
 
     def test_count(self):
-        mock_dataframe = Mock(pyspark.sql.DataFrame)
+        mock_dataframe = self._generate_mock_dataframe()
         mock_dataframe.count = Mock(return_value=42)
         a_dataset = Dataset("my dataset", mock_dataframe)
         count = a_dataset.count()
@@ -22,18 +39,18 @@ class TestDataset(unittest.TestCase):
         mock_dataframe.count.assert_called_once()
 
     def test_columns(self):
-        mock_dataframe = Mock(pyspark.sql.DataFrame)
-        mock_dataframe.columns = ['a','b','c']
+        mock_dataframe = self._generate_mock_dataframe()
+        mock_dataframe.columns = ['dataset', 'a', 'b', 'c']
         a_dataset = Dataset("my dataset", mock_dataframe)
         cols = a_dataset.columns
-        self.assertEqual(cols, ['a','b','c'])
+        self.assertEqual(cols, ['dataset', 'a', 'b', 'c'])
 
     def test_columns_with_types(self):
-        mock_dataframe = Mock(pyspark.sql.DataFrame)
-        mock_dataframe.dtypes = [('a', 'int'),('b', 'string')]
+        mock_dataframe = self._generate_mock_dataframe()
+        mock_dataframe.dtypes = [('a', 'int'), ('b', 'string')]
         a_dataset = Dataset("my dataset", mock_dataframe)
         cols = a_dataset.columns_with_types
-        self.assertEqual(cols, [('a', 'int'),('b', 'string')])
+        self.assertEqual(cols, [('a', 'int'), ('b', 'string')])
 
 
 if __name__ == '__main__':

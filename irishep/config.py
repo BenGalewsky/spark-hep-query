@@ -33,9 +33,8 @@ class Config:
 
     Parameters
     ----------
-        local_dataset_file: String path expression, optional
-            Path to a csv file holding the names of datasets and their location
-            on the local filesystem
+        dataset_manager: DatasetManager, optional
+            Instance of dataset manager
         master: String, optional
             Reference to spark master. Defaults to local
         app_name: String, optional

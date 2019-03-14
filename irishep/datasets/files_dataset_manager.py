@@ -42,6 +42,7 @@ class FilesDatasetManager(DatasetManager):
     def __init__(self, database_file):
         self.database_file = database_file
         self.provisioned = False
+        self.df = None
 
     def provision(self, app):
         """

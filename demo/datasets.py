@@ -41,3 +41,13 @@ print(dataset.name, dataset.count())
 print(dataset.columns)
 print (dataset.columns_with_types)
 
+slim = dataset.select_columns(["nElectron",
+                               "Electron_pt",
+                               "Electron_eta",
+                               "Electron_phi",
+                               "Electron_mass",
+                               "Electron_cutBased",
+                               "Electron_pdgId",
+                               "Electron_pfRelIso03_all"])
+
+print(slim.show())

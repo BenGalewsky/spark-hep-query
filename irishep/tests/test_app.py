@@ -61,7 +61,8 @@ class TestApp(unittest.TestCase):
             builder.getOrCreate.assert_called_once()
             self.assertEqual(a.dataset_manager, mock_dataset_manager)
 
-    def _construct_app(self, config):
+    @staticmethod
+    def _construct_app(config):
         builder = pyspark.sql.session.SparkSession.Builder()
         mock_session = MagicMock(SparkSession)
         builder.getOrCreate = Mock(return_value=mock_session)

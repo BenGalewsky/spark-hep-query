@@ -33,7 +33,7 @@ from pyspark.sql import DataFrame
 from irishep.datasets.files_dataset_manager import FilesDatasetManager
 
 
-class Test_FilesDataset(unittest.TestCase):
+class TestFilesDataset(unittest.TestCase):
     class DatasourceResult:
         def __init__(self, name, path="/tmp/foo.root"):
             self.name = name
@@ -62,8 +62,8 @@ class Test_FilesDataset(unittest.TestCase):
         mock_dataframe.select = Mock(return_value=mock_dataframe)
         mock_dataframe.distinct = Mock(return_value=mock_dataframe)
 
-        result = [Test_FilesDataset.DatasourceResult("a"),
-                  Test_FilesDataset.DatasourceResult("b")]
+        result = [TestFilesDataset.DatasourceResult("a"),
+                  TestFilesDataset.DatasourceResult("b")]
         mock_dataframe.collect = Mock(return_value=result)
         self.assertEqual(['a', 'b'], dsm.get_names())
 
@@ -77,8 +77,8 @@ class Test_FilesDataset(unittest.TestCase):
         mock_dataframe.path = "path"
         mock_dataframe.name = "a"
 
-        result = [Test_FilesDataset.DatasourceResult("a", "/tmp/foo.root"),
-                  Test_FilesDataset.DatasourceResult("b", "/tmp/bar.root")]
+        result = [TestFilesDataset.DatasourceResult("a", "/tmp/foo.root"),
+                  TestFilesDataset.DatasourceResult("b", "/tmp/bar.root")]
         mock_dataframe.collect = Mock(return_value=result)
 
         files = dsm.get_file_list("a")

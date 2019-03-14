@@ -7,7 +7,8 @@ from irishep.datasets.dataset import Dataset
 
 
 class TestDataset(unittest.TestCase):
-    def _generate_mock_dataframe(self):
+    @staticmethod
+    def _generate_mock_dataframe():
         mock_dataframe = Mock(pyspark.sql.DataFrame)
         mock_dataframe.columns = ['dataset', 'run']
         return mock_dataframe
@@ -51,6 +52,51 @@ class TestDataset(unittest.TestCase):
         a_dataset = Dataset("my dataset", mock_dataframe)
         cols = a_dataset.columns_with_types
         self.assertEqual(cols, [('a', 'int'), ('b', 'string')])
+
+    def test_select_provide_technical_fields(self):
+        mock_dataframe = self._generate_mock_dataframe()
+        mock_dataframe2 = self._generate_mock_dataframe()
+        mock_dataframe.select = Mock(return_value=mock_dataframe2)
+
+        a_dataset = Dataset("my dataset", mock_dataframe)
+        a_dataset2 = a_dataset.select_columns(
+            ["dataset", "run", "luminosityBlock", "event", "Electron_pt"])
+
+        self.assertEqual(mock_dataframe2, a_dataset2.dataframe)
+        self.assertEqual("my dataset", a_dataset2.name)
+
+        # The actual order of the selected columns is hard to predict. Use
+        # sorted column names to test
+        call_args = mock_dataframe.select.call_args[0][0]
+        self.assertEqual(sorted(
+            ["dataset", "run", "luminosityBlock", "event", "Electron_pt"]),
+            sorted(call_args))
+
+    def test_select_without_technical_fields(self):
+        mock_dataframe = self._generate_mock_dataframe()
+        mock_dataframe2 = self._generate_mock_dataframe()
+        mock_dataframe.select = Mock(return_value=mock_dataframe2)
+
+        a_dataset = Dataset("my dataset", mock_dataframe)
+        a_dataset2 = a_dataset.select_columns(["Electron_pt"])
+
+        self.assertEqual(mock_dataframe2, a_dataset2.dataframe)
+        self.assertEqual("my dataset", a_dataset2.name)
+
+        # The actual order of the selected columns is hard to predict. Use
+        # sorted column names to test
+        call_args = mock_dataframe.select.call_args[0][0]
+        self.assertEqual(sorted(
+            ["dataset", "run", "luminosityBlock", "event", "Electron_pt"]),
+            sorted(call_args))
+
+    def test_show(self):
+        mock_dataframe = self._generate_mock_dataframe()
+        mock_dataframe.show = Mock()
+        a_dataset = Dataset("my dataset", mock_dataframe)
+        a_dataset.show()
+
+        mock_dataframe.show.assert_called_once()
 
 
 if __name__ == '__main__':

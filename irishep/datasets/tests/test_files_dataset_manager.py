@@ -34,6 +34,11 @@ from irishep.datasets.files_dataset_manager import FilesDatasetManager
 
 
 class Test_FilesDataset(unittest.TestCase):
+    class DatasourceResult:
+        def __init__(self, name, path="/tmp/foo.root"):
+            self.name = name
+            self.path = path
+
     def test_init_database(self):
         dsm = FilesDatasetManager("/foo/bar")
         self.assertFalse(dsm.provisioned)
@@ -53,13 +58,31 @@ class Test_FilesDataset(unittest.TestCase):
         dsm = FilesDatasetManager("/foo/bar")
         mock_dataframe = MagicMock(DataFrame)
         mock_dataframe.name = "Name"
-        dsm.dataframe = mock_dataframe
+        dsm.df = mock_dataframe
         mock_dataframe.select = Mock(return_value=mock_dataframe)
         mock_dataframe.distinct = Mock(return_value=mock_dataframe)
 
-        ResultType = type('ResultType', (object,), {})
-        result = [ResultType(), ResultType()]
-        result[0].name = 'a'
-        result[1].name = 'b'
+        result = [Test_FilesDataset.DatasourceResult("a"),
+                  Test_FilesDataset.DatasourceResult("b")]
         mock_dataframe.collect = Mock(return_value=result)
         self.assertEqual(['a', 'b'], dsm.get_names())
+
+    def test_get_files(self):
+        dsm = FilesDatasetManager("/foo/bar")
+        mock_dataframe = MagicMock(DataFrame)
+        mock_dataframe.name = "Name"
+        dsm.df = mock_dataframe
+        mock_dataframe.select = Mock(return_value=mock_dataframe)
+        mock_dataframe.filter = Mock(return_value=mock_dataframe)
+        mock_dataframe.path = "path"
+        mock_dataframe.name = "a"
+
+        result = [Test_FilesDataset.DatasourceResult("a", "/tmp/foo.root"),
+                  Test_FilesDataset.DatasourceResult("b", "/tmp/bar.root")]
+        mock_dataframe.collect = Mock(return_value=result)
+
+        files = dsm.get_file_list("a")
+        self.assertEqual(['/tmp/foo.root', '/tmp/bar.root'], files)
+
+        # Will test df.name == "a"
+        mock_dataframe.filter.assert_called_with(True)

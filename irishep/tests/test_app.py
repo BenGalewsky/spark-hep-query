@@ -61,7 +61,8 @@ class TestApp(unittest.TestCase):
             builder.getOrCreate.assert_called_once()
             self.assertEqual(a.dataset_manager, mock_dataset_manager)
 
-    def _construct_app(self, config):
+    @staticmethod
+    def _construct_app(config):
         builder = pyspark.sql.session.SparkSession.Builder()
         mock_session = MagicMock(SparkSession)
         builder.getOrCreate = Mock(return_value=mock_session)
@@ -101,6 +102,7 @@ class TestApp(unittest.TestCase):
         # The first dataframe will be union'ed with the second, resulting in a
         # new dataframe
         mock_union_dataframe = Mock(pyspark.sql.DataFrame)
+        mock_union_dataframe.columns = ['dataset', 'a', 'b']
         mock_file_dataframes[0].union = Mock(return_value=mock_union_dataframe)
 
         # Perform the read

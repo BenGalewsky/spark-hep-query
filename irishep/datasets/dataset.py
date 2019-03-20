@@ -27,10 +27,55 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
+# noinspection PyUnresolvedReferences
+from pyspark.sql.functions import lit
+
+
 class Dataset:
     def __init__(self, name, dataframe):
         self.name = name
-        self.dataframe = dataframe
+
+        if 'dataset' not in dataframe.columns:
+            self.dataframe = dataframe.withColumn("dataset", lit(name))
+        else:
+            self.dataframe = dataframe
 
     def count(self):
         return self.dataframe.count()
+
+    @property
+    def columns(self):
+        """
+        Fetch the list of column names from the dataset
+        :return: List of string column names
+        """
+        return self.dataframe.columns
+
+    @property
+    def columns_with_types(self):
+        """
+        Fetch the list of column names along with their datatypes
+        :return: List of tuples with column name and datatype as string
+        """
+        return self.dataframe.dtypes
+
+    def select_columns(self, columns):
+        """
+        Create a new dataset object that contains only the specified columns.
+        For techincal reasons there are some identifying columns that will
+        be included in the result even if they are not requested
+        :param columns: List of column names
+        :return: New dataframe with only the requested columns
+        """
+        columns2 = set(columns).union(
+            ["dataset", "run", "luminosityBlock", "event"])
+
+        return Dataset(name=self.name,
+                       dataframe=self.dataframe.select(list(columns2)))
+
+    def show(self):
+        """
+        Print out a friendly representation of the dataframe
+        :return: None
+        """
+        self.dataframe.show()

@@ -36,6 +36,18 @@ config = Config(
 app = App(config=config)
 print(app.datasets.get_names())
 
-dataset = app.read_dataset("ZJetsToNuNu_HT-600To800_13TeV-madgraph")
+dataset = app.read_dataset("DY Jets")
 print(dataset.name, dataset.count())
+print(dataset.columns)
+print (dataset.columns_with_types)
 
+slim = dataset.select_columns(["nElectron",
+                               "Electron_pt",
+                               "Electron_eta",
+                               "Electron_phi",
+                               "Electron_mass",
+                               "Electron_cutBased",
+                               "Electron_pdgId",
+                               "Electron_pfRelIso03_all"])
+
+print(slim.show())

@@ -27,13 +27,21 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import numpy as np
 
+from analysis.fnal_hist_accumulator import FnalHistAccumulator
 from analysis.user_analysis import UserAnalysis
+import fnal_column_analysis_tools.hist as hist
 
 
 class ZpeakAnalysis(UserAnalysis):
+    def __init__(self, app):
+        self.accumulators = {
+            "zMass": FnalHistAccumulator(dataset_axis=hist.Cat("dataset", "DAS name"),
+                                 channel_cat_axis=hist.Cat("channel",
+                                                           "dilepton flavor"),
+                                 spark_context=app.spark.sparkContext
+                                 )}
 
-    @staticmethod
-    def calc(physics_objects):
+    def calc(self, physics_objects, dataset_name):
         electrons = physics_objects["Electron"]
         ele = electrons[(electrons.pt > 20) &
                         (np.abs(electrons.eta) < 2.5) &
@@ -70,13 +78,15 @@ class ZpeakAnalysis(UserAnalysis):
             tot += cut.sum()
             weight = np.array(1.)
 
-            # zMassHist = hists["zMass"]
-            #
-            # zMass = hist.Hist("Events", dataset_axis, channel_cat_axis,
-            #                   hist.Bin("mass", "$m_{\ell\ell}$ [GeV]", 120, 0, 120),
-            #                   )
-            #
-            # zMass.fill(dataset=dataset[0], channel=channel,
-            #            mass=zcands.mass.flatten(),
-            #            weight=weight.flatten())
-            # zMassHist.add(zMass)
+            zMassHist = self.accumulators["zMass"]
+            zMass = hist.Hist("Events", zMassHist.dataset_axis,
+                              zMassHist.channel_cat_axis,
+                              hist.Bin("mass", "$m_{\ell\ell}$ [GeV]",
+                                       120, 0, 120),
+                              )
+
+            zMass.fill(dataset=dataset_name, channel=channel,
+                       mass=zcands.mass.flatten(),
+                       weight=weight.flatten())
+
+            zMassHist.accumulator.add(zMass)

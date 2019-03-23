@@ -160,6 +160,16 @@ class TestDataset(unittest.TestCase):
                          sorted(["dataset", "run", "luminosityBlock", "event",
                                  "Electron_pt"]))
 
+    def test_udf_arguments(self):
+        mock_dataframe = self._generate_mock_dataframe()
+        mock_dataframe.columns = ["dataset", "run", "luminosityBlock", "event",
+                                  "nElectrons", "Electron_pt", "Electron_eta",
+                                  "nMuons", "Muon_pt", "Muon_eta"]
+        a_dataset = Dataset("my dataset", mock_dataframe)
+        result = a_dataset.udf_arguments(["Electron"])
+        self.assertEqual(
+            ['dataset', 'nElectrons', 'Electron_pt', 'Electron_eta'], result)
+
     def test_show(self):
         mock_dataframe = self._generate_mock_dataframe()
         mock_dataframe.show = Mock()

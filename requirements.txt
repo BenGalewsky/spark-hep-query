@@ -5,3 +5,4 @@ flake8==3.7.7
 appdirs==1.4.3
 pyparsing==2.1.10
 Jinja2==2.10
+fnal-column-analysis-tools>=0.2.5

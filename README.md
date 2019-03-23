@@ -66,11 +66,15 @@ on the events. To do this you will want to implement a subclass of
 method will accept a dictionary of JaggedArrays. The keys in this dictionary
 are Physics Object names.
 
+You will most likely want to create a dictionary of `Accumulator`s which 
+are objects that support accumulation of results (typicall histograms). These
+are available to the `calc` method and can be retrieved after the dataset 
+is analyzed.
+
 You invoke this UDF by creating an instance of `NanoAODColumnarAnalysis`. This
 class makes assumptions about the CMS NanoAOD file format. Then call
 `generate_udf` with your projected dataset, the list of physics_objects you
-need to operate on, your code to execute on the return, and a fully 
-qualified analysis class name.
+need to operate on, and your code to execute on the return.
 
 
 ## How to Test

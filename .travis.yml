@@ -12,7 +12,7 @@ before_script:
   - pip freeze
 
 script:
-  - flake8 --exclude demo  --max-line-length 80
+  - flake8 --exclude demo,templates  --max-line-length 80
   - coverage run -m unittest
 
 after_success:

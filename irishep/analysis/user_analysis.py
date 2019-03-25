@@ -26,37 +26,16 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from irishep.config import Config
-from irishep.datasets.files_dataset_manager import FilesDatasetManager
-from irishep.app import App
-
-config = Config(
-    dataset_manager=FilesDatasetManager(database_file="demo_datasets.csv")
-)
-app = App(config=config)
-print(app.datasets.get_names())
-
-dataset = app.read_dataset("DY Jets")
-print(dataset.name, dataset.count())
-print(dataset.columns)
-print (dataset.columns_with_types)
-
-slim = dataset.select_columns(["nElectron",
-                               "Electron_pt",
-                               "Electron_eta",
-                               "Electron_phi",
-                               "Electron_mass",
-                               "Electron_cutBased",
-                               "Electron_pdgId",
-                               "Electron_pfRelIso03_all",
-                               "nMuon",
-                               "Muon_pt",
-                               "Muon_eta",
-                               "Muon_phi",
-                               "Muon_mass",
-                               "Muon_tightId",
-                               "Muon_pdgId",
-                               "Muon_pfRelIso04_all"])
+from abc import ABCMeta, abstractmethod
 
 
-print(slim.show())
+class UserAnalysis(metaclass=ABCMeta):
+    @staticmethod
+    @abstractmethod
+    def calc(pyhsics_objects):
+        """
+        The actual user analysis code that can run on the jagged arrays
+        :param pyhsics_objects: Dictionary of jagged arrays keyed on
+        physics object name
+        :return: None
+        """

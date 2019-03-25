@@ -59,6 +59,20 @@ through to Spark)
 
 `show` - Print to stdout a friendly table of the first few events
 
+## User Defined Analysis
+Once you get a projected dataset you will want to execute your columnar analysis
+on the events. To do this you will want to implement a subclass of 
+`UserAnalysis` class. You will implement a single method, `calc` - this
+method will accept a dictionary of JaggedArrays. The keys in this dictionary
+are Physics Object names.
+
+You invoke this UDF by creating an instance of `NanoAODColumnarAnalysis`. This
+class makes assumptions about the CMS NanoAOD file format. Then call
+`generate_udf` with your projected dataset, the list of physics_objects you
+need to operate on, your code to execute on the return, and a fully 
+qualified analysis class name.
+
+
 ## How to Test
 We use `unittest` to verify the system. Run the tests as 
 ```bash

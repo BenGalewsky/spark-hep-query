@@ -2,3 +2,6 @@ pyspark==2.4.0
 coverage==4.5.2
 codecov==2.0.15
 flake8==3.7.7
+appdirs==1.4.3
+pyparsing==2.1.10
+Jinja2==2.10

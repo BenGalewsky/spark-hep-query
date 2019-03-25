@@ -27,11 +27,32 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
+import re
+
 # noinspection PyUnresolvedReferences
 from pyspark.sql.functions import lit
 
 
 class Dataset:
+    # There is no support in arrow for certain datatypes. Avoid exceptions by
+    # casting the column to a supported datatype
+    pyarrow_column_coverters = {
+        "array<boolean>": lambda col: col.cast("array<int >")
+    }
+
+    def _pyarrow_compatble_column(self, col, col_type):
+        """
+        Convert the colummn into a cast statement if the column's type is not
+        supported by pyArrow
+        :param col: Column Object
+        :param col_type: Type name as a string
+        :return: Column, or casted column
+        """
+        if col_type in self.pyarrow_column_coverters:
+            return self.pyarrow_column_coverters[col_type](col)
+        else:
+            return col
+
     def __init__(self, name, dataframe):
         self.name = name
 
@@ -59,19 +80,62 @@ class Dataset:
         """
         return self.dataframe.dtypes
 
+    def columns_for_physics_objects(self, physics_objects):
+        """
+        Return a list of columns that form part of the requested physics_objects
+        This will include all properties of the pyhsics object, or a count
+        variable associated with the object such as nElectrons
+        :param physics_objects:
+        :return:
+        """
+        # Create column Names for the count properties (nElectrons, nMuons, etc)
+        physics_obj_count_cols = ["n" + col for col in physics_objects]
+
+        # Join together into a series of alternate REs
+        physics_obj_count_re = "(" + ")|(".join(physics_obj_count_cols) + ")"
+
+        # Create an RE that will match a physics object's properties
+        # i.e. Electon_.*
+        physics_obj_re = "(" + ")|(".join(physics_objects) + ")_.*"
+
+        # Now create a composite RE that will match a count or a
+        # physics obj property
+        r = re.compile(
+            "(" + physics_obj_re + ")|(" + physics_obj_count_re + ")")
+
+        # Filter and return list
+        return [col for col in self.columns if r.match(col)]
+
+    @staticmethod
+    def count_column_for_physics_object(physics_object):
+        """
+        Generate a column name that represents the count property for a physics
+        object. i.e. nElectron
+        :param physics_object: the name of the physics object
+        :return: Column name for the count of this object
+        """
+        return "n" + physics_object
+
     def select_columns(self, columns):
         """
         Create a new dataset object that contains only the specified columns.
         For techincal reasons there are some identifying columns that will
-        be included in the result even if they are not requested
+        be included in the result even if they are not requested. Columns
+        with a type that is not supported by pyarrow will be casted to a
+        supported type
         :param columns: List of column names
         :return: New dataframe with only the requested columns
         """
         columns2 = set(columns).union(
             ["dataset", "run", "luminosityBlock", "event"])
 
+        projected = self.dataframe.select(list(columns2))
+
+        columns3 = [self._pyarrow_compatble_column(projected[c[0]], c[1]) for c
+                    in projected.dtypes]
+
         return Dataset(name=self.name,
-                       dataframe=self.dataframe.select(list(columns2)))
+                       dataframe=self.dataframe.select(list(columns3)))
 
     def show(self):
         """

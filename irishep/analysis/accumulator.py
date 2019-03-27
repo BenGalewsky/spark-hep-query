@@ -25,22 +25,37 @@
 # CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-from abc import ABCMeta, abstractmethod
+
+from pyspark.accumulators import AccumulatorParam
+from abc import ABCMeta
 
 
-class ColumnarAnalysis(metaclass=ABCMeta):
-    def __init__(self):
-        """
-        Base class for a columnar style analysis
-        """
+class Accumulator(AccumulatorParam, metaclass=ABCMeta):
+    def __init__(self, spark_context):
+        self.accumulator = spark_context.accumulator(None, self)
 
-    @abstractmethod
-    def generate_udf(self, dataset, physics_objects, return_expr):
+    def zero(self, value):
         """
-        Create a function that implements a spark Pandas UDF
-        :param dataset: Dataset object that this analysis will run over
-        :param physics_objects: List of physics object names
-        :param return_expr: A string representing what you want to return from
-        the UDF
-        :return: The generated function
+        Implements method from AccumulatorParam. Just used to initialize
+        the accumulator
+        :param value: initial value for the accumulator
+        :return: same
         """
+        return value
+
+    def addInPlace(self, val1, val2):
+        """
+        Implements addInPlace for accumulator. Has special case for the first
+        time when the existing value may be None. In that case just set the
+        accumulator to the passed in new value. Otherwise add the passed in
+        value to the existing histogram
+        :param val1:
+        :param val2:
+        :return:
+        """
+        if val1:
+            val1 += val2
+        else:
+            val1 = val2
+
+        return val1

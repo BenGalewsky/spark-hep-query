@@ -33,12 +33,17 @@ import re
 class NanoAODColumnarAnalysis(ColumnarAnalysis):
     obj_property_re = re.compile("^[A-Za-z0-9]+_(.*)")
 
-    def __init__(self):
+    def __init__(self, user_analysis):
+        """
+        :param user_analysis: Subclass of UserAnalysis that contains the user
+        code to execute
+        """
         super().__init__()
         self.env = Environment(
             loader=PackageLoader('irishep', 'templates'),
             autoescape=select_autoescape(['py'])
         )
+        self.user_analysis = user_analysis
 
     def _zip_entry(self, col_name):
         """
@@ -52,8 +57,7 @@ class NanoAODColumnarAnalysis(ColumnarAnalysis):
         item = '{}={}.array[0].base'.format(match.group(1), col_name)
         return item
 
-    def generate_udf(self, dataset, physics_objects, return_expr,
-                     analysis_class):
+    def generate_udf(self, dataset, physics_objects, return_expr):
         """
         Create a pandas dataframe UDF that can be passed into spark for
         implementing the analysis.
@@ -61,11 +65,8 @@ class NanoAODColumnarAnalysis(ColumnarAnalysis):
         :param physics_objects: List of physics object names that will be passed
         into the UDF
         :param return_expr: Code to execute to return value from UDF
-        :param analysis_class: Fully qualified class name for a subclass of
-        user_analysis class
         :return: The generated function
         """
-
         # Create a directory of JaggedArray zip entries. One for each physics
         # object. Each entry in the dictionary is a list of zip entries. The
         # zip entries include one for the count series (i.e. nElectron)
@@ -80,12 +81,16 @@ class NanoAODColumnarAnalysis(ColumnarAnalysis):
 
         template = self.env.get_template('mytemplate.py')
         udf_str = template.render(physics_objects=objects,
-                                  cols=dataset.columns_for_physics_objects(
-                                      physics_objects),
-                                  return_expr=return_expr,
-                                  analysis_class=analysis_class)
+                                  cols=dataset.udf_arguments(physics_objects),
+                                  return_expr=return_expr)
+
         print(udf_str)
         exec(udf_str)
+
+        # Not sure how best to do this. The user analysis instance will
+        # live in the __main__ module usually and we need to make it global
+        # to the UDF in this module
+        globals()['my_analysis'] = self.user_analysis
 
         # Assume that the template renders to a def udf(....)
         return locals()['udf']

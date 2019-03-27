@@ -137,6 +137,16 @@ class Dataset:
         return Dataset(name=self.name,
                        dataframe=self.dataframe.select(list(columns3)))
 
+    def udf_arguments(self, physics_objects):
+        """
+        Construct the set of argumnents to UDFs on this dataset based on the
+        requested Physics Objects.
+        For now we also include the dataset name column for bookkeeping
+        :param physics_objects: List of physics object names
+        :return: List of colums for passing in as arguments to UDF
+        """
+        return ["dataset"]+self.columns_for_physics_objects(physics_objects)
+
     def show(self):
         """
         Print out a friendly representation of the dataframe

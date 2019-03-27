@@ -2,10 +2,8 @@ def udf({% for col in cols %}{{col}}{{ "," if not loop.last }}{% endfor %}):
     import pandas as pd
     import numpy as np
     from fnal_column_analysis_tools.analysis_objects import JaggedCandidateArray
-    from pydoc import locate
+    global my_analysis
 
-    my_class = locate('{{analysis_class}}')
-    print(my_class)
     physics_objects = {}
     {% for obj in physics_objects.keys() %}
     physics_objects["{{obj}}"] = \
@@ -14,5 +12,5 @@ def udf({% for col in cols %}{{col}}{{ "," if not loop.last }}{% endfor %}):
             {% endfor %})
     {% endfor %}
 
-    my_class.calc(physics_objects)
+    my_analysis.calc(physics_objects, dataset[0])
     return {{return_expr}}

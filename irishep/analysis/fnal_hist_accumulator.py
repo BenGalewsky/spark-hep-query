@@ -25,22 +25,15 @@
 # CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-from abc import ABCMeta, abstractmethod
+
+from irishep.analysis.accumulator import Accumulator
 
 
-class ColumnarAnalysis(metaclass=ABCMeta):
-    def __init__(self):
-        """
-        Base class for a columnar style analysis
-        """
-
-    @abstractmethod
-    def generate_udf(self, dataset, physics_objects, return_expr):
-        """
-        Create a function that implements a spark Pandas UDF
-        :param dataset: Dataset object that this analysis will run over
-        :param physics_objects: List of physics object names
-        :param return_expr: A string representing what you want to return from
-        the UDF
-        :return: The generated function
-        """
+class FnalHistAccumulator(Accumulator):
+    """
+    Acumulator based on the Fermilab Columnar Analyasis Histogram
+    """
+    def __init__(self, dataset_axis, channel_cat_axis, spark_context):
+        super().__init__(spark_context)
+        self.dataset_axis = dataset_axis
+        self.channel_cat_axis = channel_cat_axis

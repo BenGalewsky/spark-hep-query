@@ -71,6 +71,10 @@ are objects that support accumulation of results (typicall histograms). These
 are available to the `calc` method and can be retrieved after the dataset 
 is analyzed.
 
+If you have nonevent data that you want to load in from the driver and make
+available inside the udf, you can create a `NonEventData` instance and add 
+it to the user analysis instance.
+
 You invoke this UDF by creating an instance of `NanoAODColumnarAnalysis`. This
 class makes assumptions about the CMS NanoAOD file format. Then call
 `generate_udf` with your projected dataset, the list of physics_objects you

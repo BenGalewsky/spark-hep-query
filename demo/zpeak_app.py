@@ -29,16 +29,26 @@
 from pyspark.sql.functions import pandas_udf, PandasUDFType
 from pyspark.sql.types import DoubleType
 
-from analysis.nanoaod_columnar_analysis import NanoAODColumnarAnalysis
+from irishep.analysis.nanoaod_columnar_analysis import NanoAODColumnarAnalysis
+from irishep.analysis.nonevent_data import NonEventData
 from demo.zpeak.zpeak_analysis import ZpeakAnalysis
 from irishep.app import App
 from irishep.config import Config
 from irishep.datasets.files_dataset_manager import FilesDatasetManager
+import fnal_column_analysis_tools.lookup_tools as lookup_tools
 
 config = Config(
-    dataset_manager=FilesDatasetManager(database_file="../demo_datasets.csv")
+    dataset_manager=FilesDatasetManager(database_file="demo_datasets.csv")
 )
 app = App(config=config)
+
+# Create a broadcast variable for the non-event data
+weightsext = lookup_tools.extractor()
+correctionDescriptions = open("newCorrectionFiles.txt").readlines()
+weightsext.add_weight_sets(correctionDescriptions)
+weightsext.finalize()
+weights_eval = weightsext.make_evaluator()
+
 
 dataset = app.read_dataset("DY Jets")
 
@@ -59,7 +69,7 @@ slim = dataset.select_columns(["nElectron",
                                "Muon_pdgId",
                                "Muon_pfRelIso04_all"])
 
-my_analysis = ZpeakAnalysis(app)
+my_analysis = ZpeakAnalysis(app, weights_eval)
 analysis = NanoAODColumnarAnalysis(my_analysis)
 
 f = analysis.generate_udf(slim, ["Electron", "Muon"],

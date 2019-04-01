@@ -153,3 +153,11 @@ class Dataset:
         :return: None
         """
         self.dataframe.show()
+
+    def repartition(self, num_partitions):
+        """
+        Distribute the dataframe across the given number of partitions
+        :param num_partitions: Number of partitions
+        :return: None
+        """
+        self.dataframe = self.dataframe.repartition(num_partitions)

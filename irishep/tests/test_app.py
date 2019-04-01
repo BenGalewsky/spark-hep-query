@@ -90,7 +90,9 @@ class TestApp(unittest.TestCase):
         mock_datasource_manager.get_file_list = Mock(
             return_value=["/tmp/foo.root", "/tmp/bar.root"])
 
-        a = self._construct_app(Config(dataset_manager=mock_datasource_manager))
+        a = self._construct_app(Config(
+            num_partitions=42,
+            dataset_manager=mock_datasource_manager))
 
         # There will be dataframes generated for each file as part of the load
         mock_file_dataframes = [Mock(pyspark.sql.DataFrame),
@@ -104,6 +106,8 @@ class TestApp(unittest.TestCase):
         mock_union_dataframe = Mock(pyspark.sql.DataFrame)
         mock_union_dataframe.columns = ['dataset', 'a', 'b']
         mock_file_dataframes[0].union = Mock(return_value=mock_union_dataframe)
+        mock_union_dataframe.repartition = Mock(
+            return_value=mock_union_dataframe)
 
         # Perform the read
         dataset = a.read_dataset("mydataset")
@@ -121,3 +125,6 @@ class TestApp(unittest.TestCase):
         # second file
         mock_file_dataframes[0].union.assert_called_with(
             mock_file_dataframes[1])
+
+        # Verify that the resulting dataframe was repartitioned
+        mock_union_dataframe.repartition.assert_called_with(42)

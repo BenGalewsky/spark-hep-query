@@ -178,6 +178,14 @@ class TestDataset(unittest.TestCase):
 
         mock_dataframe.show.assert_called_once()
 
+    def test_repartition(self):
+        mock_dataframe = self._generate_mock_dataframe()
+        mock_dataframe.repartition = Mock()
+        a_dataset = Dataset("my dataset", mock_dataframe)
+
+        a_dataset.repartition(42)
+        mock_dataframe.repartition.assert_called_with(42)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -28,18 +28,21 @@
 import numpy as np
 
 from analysis.fnal_hist_accumulator import FnalHistAccumulator
+from analysis.nonevent_data import NonEventData
 from analysis.user_analysis import UserAnalysis
 import fnal_column_analysis_tools.hist as hist
 
 
 class ZpeakAnalysis(UserAnalysis):
-    def __init__(self, app):
+    def __init__(self, app, nonevent_data):
         self.accumulators = {
             "zMass": FnalHistAccumulator(dataset_axis=hist.Cat("dataset", "DAS name"),
                                  channel_cat_axis=hist.Cat("channel",
                                                            "dilepton flavor"),
                                  spark_context=app.spark.sparkContext
                                  )}
+
+        self.nonevent_data = NonEventData(app, nonevent_data)
 
     def calc(self, physics_objects, dataset_name):
         electrons = physics_objects["Electron"]
@@ -51,6 +54,12 @@ class ZpeakAnalysis(UserAnalysis):
         mu = muons[(muons.pt > 20) &
                    (np.abs(muons.eta) < 2.4) &
                    (muons.tightId > 0)]
+
+        # Just to demonstrate broadcast variables
+        weights_eval = self.nonevent_data.value
+        electrons['SF'] = weights_eval["eleScaleFactor_TightId_POG"](
+            electrons.eta,
+            electrons.pt)
 
         ee = ele.distincts()
         mm = mu.distincts()

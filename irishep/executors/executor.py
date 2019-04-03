@@ -25,34 +25,35 @@
 # CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+from abc import ABCMeta, abstractmethod
 
 
-class App:
-    def __init__(self, config):
-        self.config = config
-        self.executor = config.executor
-        self.dataset_manager = config.dataset_manager
+class Executor(metaclass=ABCMeta):
+    def __init__(self, app_name):
+        self.app_name = app_name
 
-    @property
-    def datasets(self):
+    @abstractmethod
+    def read_files(self, dataset_name, files):
         """
-        Fetch an initialized dataset manager instance
-        :return: the dataset manager instance
-        """
-        if not self.dataset_manager.provisioned:
-            self.dataset_manager.provision(self)
-        return self.dataset_manager
 
-    def read_dataset(self, dataset_name):
+        :param dataset_name:
+        :param files:
+        :return:
         """
-        Creates a dataset from files on disk. For now assumes that the files are
-        in ROOT format
-        :param dataset_name: Name of the dataset to read. Gets filenames from
-            the dataset_manager
-        :return: A populated Dataset instance
-        """
-        files = self.datasets.get_file_list(dataset_name)
-        print(files)
 
-        dataset = self.executor.read_files(dataset_name, files)
-        return dataset
+    @abstractmethod
+    def register_accumulator(self, initial_value, accumulator):
+        """
+
+        :param initial_value:
+        :param accumulator:
+        :return:
+        """
+
+    @abstractmethod
+    def register_broadcast_var(self, value):
+        """
+
+        :param value:
+        :return:
+        """

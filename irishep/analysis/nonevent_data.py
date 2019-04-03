@@ -29,7 +29,7 @@
 
 class NonEventData:
     def __init__(self, app, value):
-        self.broadcast_var = app.spark.sparkContext.broadcast(value)
+        self.broadcast_var = app.executor.register_broadcast_var(value)
 
     @property
     def value(self):

@@ -25,22 +25,30 @@
 # CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+import sys
 
-from pyspark.sql.functions import pandas_udf, PandasUDFType
+from pyspark.sql.functions import PandasUDFType, pandas_udf
 from pyspark.sql.types import DoubleType
 
-from irishep.analysis.nanoaod_columnar_analysis import NanoAODColumnarAnalysis
-from irishep.analysis.nonevent_data import NonEventData
-from demo.zpeak.zpeak_analysis import ZpeakAnalysis
+from analysis.nanoaod_columnar_analysis import NanoAODColumnarAnalysis
+from fnal_column_analysis_tools import lookup_tools
+
+from irishep.executors.uproot_executor import UprootExecutor
+from irishep.executors.spark_executor import SparkExecutor
 from irishep.app import App
 from irishep.config import Config
-from irishep.datasets.files_dataset_manager import FilesDatasetManager
-import fnal_column_analysis_tools.lookup_tools as lookup_tools
+from irishep.datasets.inmemory_files_dataset_manager import \
+    InMemoryFilesDatasetManager
+from zpeak_analysis import ZpeakAnalysis
 
 config = Config(
-    dataset_manager=FilesDatasetManager(database_file="demo_datasets.csv")
+    executor = SparkExecutor("local", "ZPeak", 20),
+    dataset_manager=InMemoryFilesDatasetManager(database_file="demo_datasets.csv")
 )
 app = App(config=config)
+print(app.datasets.get_names())
+print(app.datasets.get_file_list("ZJetsToNuNu_HT-600To800_13TeV-madgraph"))
+
 
 # Create a broadcast variable for the non-event data
 weightsext = lookup_tools.extractor()

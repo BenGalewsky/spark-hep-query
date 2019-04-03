@@ -25,34 +25,41 @@
 # CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+from pyspark.sql import SparkSession
+
+from irishep.datasets.spark_dataset import SparkDataset
+from irishep.executors.executor import Executor
 
 
-class App:
-    def __init__(self, config):
-        self.config = config
-        self.executor = config.executor
-        self.dataset_manager = config.dataset_manager
+class SparkExecutor(Executor):
+    def __init__(self, master, app_name, num_partitions):
+        super().__init__(app_name)
+        self.spark = SparkSession.builder \
+            .master(master) \
+            .appName(app_name) \
+            .config("spark.jars.packages",
+                    "org.diana-hep:spark-root_2.11:0.1.15") \
+            .getOrCreate()
+        self.num_partitions = num_partitions
 
-    @property
-    def datasets(self):
-        """
-        Fetch an initialized dataset manager instance
-        :return: the dataset manager instance
-        """
-        if not self.dataset_manager.provisioned:
-            self.dataset_manager.provision(self)
-        return self.dataset_manager
+    def read_files(self, dataset_name, files):
+        result_df = None
+        # Sparkroot can't handle list of files
+        for file in files:
+            file_df = self.spark.read.format("org.dianahep.sparkroot") \
+                .option("tree", "Events") \
+                .load(file)
 
-    def read_dataset(self, dataset_name):
-        """
-        Creates a dataset from files on disk. For now assumes that the files are
-        in ROOT format
-        :param dataset_name: Name of the dataset to read. Gets filenames from
-            the dataset_manager
-        :return: A populated Dataset instance
-        """
-        files = self.datasets.get_file_list(dataset_name)
-        print(files)
+            # So just append each file's datafrane into one big one
+            result_df = file_df if not result_df else result_df.union(file_df)
 
-        dataset = self.executor.read_files(dataset_name, files)
+        dataset = SparkDataset(dataset_name, result_df)
+        dataset.repartition(self.num_partitions)
+
         return dataset
+
+    def register_accumulator(self, initial_value, accumulator):
+        return self.spark.sparkContext.accumulator(initial_value, accumulator)
+
+    def register_broadcast_var(self, var):
+        return self.spark.sparkContext.broadcast(var)

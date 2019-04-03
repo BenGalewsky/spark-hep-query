@@ -33,7 +33,7 @@ class FnalHistAccumulator(Accumulator):
     """
     Acumulator based on the Fermilab Columnar Analyasis Histogram
     """
-    def __init__(self, dataset_axis, channel_cat_axis, spark_context):
-        super().__init__(spark_context)
+    def __init__(self, dataset_axis, channel_cat_axis, app):
+        super().__init__(app)
         self.dataset_axis = dataset_axis
         self.channel_cat_axis = channel_cat_axis

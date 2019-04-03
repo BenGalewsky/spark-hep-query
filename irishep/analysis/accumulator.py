@@ -31,8 +31,8 @@ from abc import ABCMeta
 
 
 class Accumulator(AccumulatorParam, metaclass=ABCMeta):
-    def __init__(self, spark_context):
-        self.accumulator = spark_context.accumulator(None, self)
+    def __init__(self, app):
+        self.accumulator = app.executor.register_accumulator(None, self)
 
     def zero(self, value):
         """

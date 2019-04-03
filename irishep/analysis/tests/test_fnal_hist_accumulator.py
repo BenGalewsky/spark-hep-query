@@ -1,10 +1,10 @@
 import unittest
 from unittest.mock import Mock
 
-from pyspark import SparkContext
-
 import fnal_column_analysis_tools.hist as hist
 from irishep.analysis.fnal_hist_accumulator import FnalHistAccumulator
+from irishep.app import App
+from irishep.executors.executor import Executor
 
 
 class TestFNALHistAccumulator(unittest.TestCase):
@@ -12,24 +12,25 @@ class TestFNALHistAccumulator(unittest.TestCase):
     def _create_fnal_accumulator():
         ds_axis = Mock(hist.Cat)
         cat_axis = Mock(hist.Cat)
-        mock_spark = Mock(SparkContext)
-        mock_accumulator = Mock()
-        mock_spark.accumulator = Mock(return_value=mock_accumulator)
-        return FnalHistAccumulator(ds_axis, cat_axis, mock_spark)
+        mock_app = Mock(App)
+        mock_app.executor = Mock(Executor)
+        mock_app.executor.register_accumulator = Mock()
+        return FnalHistAccumulator(ds_axis, cat_axis, mock_app)
 
     def test_init(self):
         ds_axis = Mock(hist.Cat)
         cat_axis = Mock(hist.Cat)
-        mock_spark = Mock(SparkContext)
-        mock_accumulator = Mock()
-        mock_spark.accumulator = Mock(return_value=mock_accumulator)
-        accum = FnalHistAccumulator(ds_axis, cat_axis, mock_spark)
+        mock_app = Mock(App)
+        mock_app.executor = Mock(Executor)
+        mock_app.executor.register_accumulator = Mock(
+            return_value="MyAccumulator")
+        accum = FnalHistAccumulator(ds_axis, cat_axis, mock_app)
 
         self.assertEqual(accum.dataset_axis, ds_axis)
         self.assertEqual(accum.channel_cat_axis, cat_axis)
-        self.assertEqual(accum.accumulator, mock_accumulator)
+        self.assertEqual(accum.accumulator, "MyAccumulator")
 
-        mock_spark.accumulator.assert_called_with(None, accum)
+        mock_app.executor.register_accumulator.assert_called_with(None, accum)
 
     def test_zero(self):
         accum = self._create_fnal_accumulator()

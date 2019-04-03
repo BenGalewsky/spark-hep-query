@@ -35,21 +35,14 @@ class Config:
     ----------
         dataset_manager: DatasetManager, optional
             Instance of dataset manager
-        master: String, optional
-            Reference to spark master. Defaults to local
-        app_name: String, optional
-            String name that will be passed to spark to reference this
-            application
         num_partitions: Int, optional
             Number of partitions to spread datasets over.
     """
+
     def __init__(self,
                  dataset_manager=None,
-                 master="local",
-                 app_name="spark-hep",
+                 executor=None,
                  num_partitions=10):
-
         self.dataset_manager = dataset_manager
-        self.master = master
-        self.app_name = app_name
+        self.executor = executor
         self.num_partitions = num_partitions

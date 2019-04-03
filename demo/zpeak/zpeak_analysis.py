@@ -39,7 +39,7 @@ class ZpeakAnalysis(UserAnalysis):
             "zMass": FnalHistAccumulator(dataset_axis=hist.Cat("dataset", "DAS name"),
                                  channel_cat_axis=hist.Cat("channel",
                                                            "dilepton flavor"),
-                                 spark_context=app.spark.sparkContext
+                                 spark_context=app.executor.spark.sparkContext
                                  )}
 
         self.nonevent_data = NonEventData(app, nonevent_data)

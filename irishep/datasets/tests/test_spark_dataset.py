@@ -1,10 +1,10 @@
 import unittest
 from unittest.mock import Mock, patch, MagicMock
 import pyspark.sql
-from irishep.datasets.dataset import Dataset
+from irishep.datasets.spark_dataset import SparkDataset
 
 
-class TestDataset(unittest.TestCase):
+class TestSparkDataset(unittest.TestCase):
     @staticmethod
     def _generate_mock_dataframe():
         mock_dataframe = MagicMock(pyspark.sql.DataFrame)
@@ -29,20 +29,20 @@ class TestDataset(unittest.TestCase):
             mock_dataframe = self._generate_mock_dataframe()
             mock_dataframe.columns = ['run', 'event']
             mock_dataframe.withColumn = Mock(return_value=mock_dataframe)
-            a_dataset = Dataset("my dataset", mock_dataframe)
+            a_dataset = SparkDataset("my dataset", mock_dataframe)
             self.assertEqual(a_dataset.name, "my dataset")
             self.assertEqual(a_dataset.dataframe, mock_dataframe)
 
     def test_constuctor_with_dataset_name_in_dataframe(self):
         mock_dataframe = self._generate_mock_dataframe()
-        a_dataset = Dataset("my dataset", mock_dataframe)
+        a_dataset = SparkDataset("my dataset", mock_dataframe)
         self.assertEqual(a_dataset.name, "my dataset")
         self.assertEqual(a_dataset.dataframe, mock_dataframe)
 
     def test_count(self):
         mock_dataframe = self._generate_mock_dataframe()
         mock_dataframe.count = Mock(return_value=42)
-        a_dataset = Dataset("my dataset", mock_dataframe)
+        a_dataset = SparkDataset("my dataset", mock_dataframe)
         count = a_dataset.count()
         self.assertEqual(42, count)
         mock_dataframe.count.assert_called_once()
@@ -50,14 +50,14 @@ class TestDataset(unittest.TestCase):
     def test_columns(self):
         mock_dataframe = self._generate_mock_dataframe()
         mock_dataframe.columns = ['dataset', 'a', 'b', 'c']
-        a_dataset = Dataset("my dataset", mock_dataframe)
+        a_dataset = SparkDataset("my dataset", mock_dataframe)
         cols = a_dataset.columns
         self.assertEqual(cols, ['dataset', 'a', 'b', 'c'])
 
     def test_columns_with_types(self):
         mock_dataframe = self._generate_mock_dataframe()
         mock_dataframe.dtypes = [('a', 'int'), ('b', 'string')]
-        a_dataset = Dataset("my dataset", mock_dataframe)
+        a_dataset = SparkDataset("my dataset", mock_dataframe)
         cols = a_dataset.columns_with_types
         self.assertEqual(cols, [('a', 'int'), ('b', 'string')])
 
@@ -66,7 +66,7 @@ class TestDataset(unittest.TestCase):
         mock_dataframe.columns = ["dataset", "run", "luminosityBlock", "event",
                                   "nElectrons", "Electron_pt", "Electron_eta",
                                   "nMuons", "Muon_pt", "Muon_eta"]
-        a_dataset = Dataset("my dataset", mock_dataframe)
+        a_dataset = SparkDataset("my dataset", mock_dataframe)
         rslt = a_dataset.columns_for_physics_objects(["Electron", "Muon"])
         self.assertEqual(rslt,
                          ['nElectrons', 'Electron_pt', 'Electron_eta', 'nMuons',
@@ -74,7 +74,7 @@ class TestDataset(unittest.TestCase):
 
     def test_count_column_for_physics_object(self):
         mock_dataframe = self._generate_mock_dataframe()
-        a_dataset = Dataset("my dataset", mock_dataframe)
+        a_dataset = SparkDataset("my dataset", mock_dataframe)
         self.assertEqual("nElectron",
                          a_dataset.count_column_for_physics_object("Electron"))
 
@@ -85,7 +85,7 @@ class TestDataset(unittest.TestCase):
         mock_dataframe2 = self._generate_mock_dataframe()
         mock_dataframe.select = Mock(return_value=mock_dataframe2)
 
-        a_dataset = Dataset("my dataset", mock_dataframe)
+        a_dataset = SparkDataset("my dataset", mock_dataframe)
 
         a_dataset2 = a_dataset.select_columns(
             ["dataset", "run", "luminosityBlock", "event", "Electron_pt"])
@@ -124,7 +124,7 @@ class TestDataset(unittest.TestCase):
 
         mock_dataframe.select = Mock(return_value=mock_dataframe2)
 
-        a_dataset = Dataset("my dataset", mock_dataframe)
+        a_dataset = SparkDataset("my dataset", mock_dataframe)
 
         a_dataset2 = a_dataset.select_columns(
             ["dataset", "run", "luminosityBlock", "event", "Muon_tightId"])
@@ -147,7 +147,7 @@ class TestDataset(unittest.TestCase):
 
         mock_dataframe.select = Mock(return_value=mock_dataframe2)
 
-        a_dataset = Dataset("my dataset", mock_dataframe)
+        a_dataset = SparkDataset("my dataset", mock_dataframe)
         a_dataset2 = a_dataset.select_columns(["Electron_pt"])
 
         self.assertEqual(mock_dataframe2, a_dataset2.dataframe)
@@ -165,7 +165,7 @@ class TestDataset(unittest.TestCase):
         mock_dataframe.columns = ["dataset", "run", "luminosityBlock", "event",
                                   "nElectrons", "Electron_pt", "Electron_eta",
                                   "nMuons", "Muon_pt", "Muon_eta"]
-        a_dataset = Dataset("my dataset", mock_dataframe)
+        a_dataset = SparkDataset("my dataset", mock_dataframe)
         result = a_dataset.udf_arguments(["Electron"])
         self.assertEqual(
             ['dataset', 'nElectrons', 'Electron_pt', 'Electron_eta'], result)
@@ -173,7 +173,7 @@ class TestDataset(unittest.TestCase):
     def test_show(self):
         mock_dataframe = self._generate_mock_dataframe()
         mock_dataframe.show = Mock()
-        a_dataset = Dataset("my dataset", mock_dataframe)
+        a_dataset = SparkDataset("my dataset", mock_dataframe)
         a_dataset.show()
 
         mock_dataframe.show.assert_called_once()
@@ -181,7 +181,7 @@ class TestDataset(unittest.TestCase):
     def test_repartition(self):
         mock_dataframe = self._generate_mock_dataframe()
         mock_dataframe.repartition = Mock()
-        a_dataset = Dataset("my dataset", mock_dataframe)
+        a_dataset = SparkDataset("my dataset", mock_dataframe)
 
         a_dataset.repartition(42)
         mock_dataframe.repartition.assert_called_with(42)

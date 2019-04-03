@@ -27,11 +27,12 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import unittest
-from unittest.mock import patch, Mock, MagicMock, call
+from unittest.mock import Mock, MagicMock
 
 import pyspark.sql
 from pyspark.sql import SparkSession
 
+from irishep.executors.executor import Executor
 from irishep.config import Config
 from irishep.datasets.dataset_manager import DatasetManager
 from irishep.app import App
@@ -47,39 +48,40 @@ class TestApp(unittest.TestCase):
         builder.getOrCreate = Mock(return_value=mock_session)
 
         mock_dataset_manager = MagicMock(DatasetManager)
+        mock_executor = MagicMock(Executor)
 
-        with patch('pyspark.sql.SparkSession.builder', new=builder):
-            a = App(Config(
-                app_name="foo",
-                master="spark-master",
-                dataset_manager=mock_dataset_manager
-            ))
+        a = App(Config(
+            executor=mock_executor,
+            dataset_manager=mock_dataset_manager
+        ))
 
-            assert a
-            builder.master.assert_called_with("spark-master")
-            builder.appName.assert_called_with("foo")
-            builder.getOrCreate.assert_called_once()
-            self.assertEqual(a.dataset_manager, mock_dataset_manager)
-
-    @staticmethod
-    def _construct_app(config):
-        builder = pyspark.sql.session.SparkSession.Builder()
-        mock_session = MagicMock(SparkSession)
-        builder.getOrCreate = Mock(return_value=mock_session)
-        with patch('pyspark.sql.SparkSession.builder', new=builder):
-            return App(config)
+        assert a
+        self.assertEqual(a.dataset_manager, mock_dataset_manager)
+        self.assertEqual(a.executor, mock_executor)
 
     def test_provisioned_dataset_manager(self):
         mock_datasource_manager = Mock(DatasetManager)
+        mock_executor = MagicMock(Executor)
+
         mock_datasource_manager.provisioned = True
-        a = self._construct_app(Config(dataset_manager=mock_datasource_manager))
+        a = App(Config(
+            executor=mock_executor,
+            dataset_manager=mock_datasource_manager
+        ))
         self.assertTrue(a.datasets)
 
     def test_unprovisioned_dataset_manager(self):
         mock_datasource_manager = Mock(DatasetManager)
-        mock_datasource_manager.provisioned = False
         mock_datasource_manager.provision = Mock()
-        a = self._construct_app(Config(dataset_manager=mock_datasource_manager))
+
+        mock_executor = MagicMock(Executor)
+
+        mock_datasource_manager.provisioned = False
+        a = App(Config(
+            executor=mock_executor,
+            dataset_manager=mock_datasource_manager
+        ))
+
         self.assertTrue(a.datasets)
         mock_datasource_manager.provision.assert_called_once()
 
@@ -90,41 +92,18 @@ class TestApp(unittest.TestCase):
         mock_datasource_manager.get_file_list = Mock(
             return_value=["/tmp/foo.root", "/tmp/bar.root"])
 
-        a = self._construct_app(Config(
+        mock_dataset = Mock()
+        mock_executor = Mock(Executor)
+        mock_executor.read_files = Mock(return_value=mock_dataset)
+
+        a = App(Config(
+            executor=mock_executor,
             num_partitions=42,
             dataset_manager=mock_datasource_manager))
 
-        # There will be dataframes generated for each file as part of the load
-        mock_file_dataframes = [Mock(pyspark.sql.DataFrame),
-                                Mock(pyspark.sql.DataFrame)]
-        a.spark.read.format = Mock(return_value=a.spark)
-        a.spark.option = Mock(return_value=a.spark)
-        a.spark.load = Mock(side_effect=mock_file_dataframes)
-
-        # The first dataframe will be union'ed with the second, resulting in a
-        # new dataframe
-        mock_union_dataframe = Mock(pyspark.sql.DataFrame)
-        mock_union_dataframe.columns = ['dataset', 'a', 'b']
-        mock_file_dataframes[0].union = Mock(return_value=mock_union_dataframe)
-        mock_union_dataframe.repartition = Mock(
-            return_value=mock_union_dataframe)
-
-        # Perform the read
-        dataset = a.read_dataset("mydataset")
-
+        rslt = a.read_dataset("mydataset")
         mock_datasource_manager.get_file_list.assert_called_with("mydataset")
-        a.spark.read.format.assert_called_with("org.dianahep.sparkroot")
-        print(a.spark.load.call_args_list)
-        a.spark.load.assert_has_calls(
-            [call("/tmp/foo.root"), call("/tmp/bar.root")])
-
-        self.assertEqual(dataset.name, "mydataset")
-        self.assertEqual(dataset.dataframe, mock_union_dataframe)
-
-        # Verify that the first file's dataframe was unioned with the
-        # second file
-        mock_file_dataframes[0].union.assert_called_with(
-            mock_file_dataframes[1])
-
-        # Verify that the resulting dataframe was repartitioned
-        mock_union_dataframe.repartition.assert_called_with(42)
+        mock_executor.read_files.assert_called_with("mydataset",
+                                                    ["/tmp/foo.root",
+                                                     "/tmp/bar.root"])
+        self.assertEqual(rslt, mock_dataset)

@@ -133,3 +133,11 @@ class Dataset(metaclass=ABCMeta):
         :param num_partitions: Number of partitions
         :return: None
         """
+
+    @abstractmethod
+    def execute_udf(self, user_func):
+        """
+        Execute the UDF locally
+        :param user_func: Instance of UserFunction to execute
+        :return:
+        """

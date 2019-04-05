@@ -36,16 +36,18 @@ import fnal_column_analysis_tools.hist as hist
 class ZpeakAnalysis(UserAnalysis):
     def __init__(self, app, nonevent_data):
         self.accumulators = {
-            "zMass": FnalHistAccumulator(dataset_axis=hist.Cat("dataset", "DAS name"),
-                                 channel_cat_axis=hist.Cat("channel",
-                                                           "dilepton flavor"),
-                                 spark_context=app.executor.spark.sparkContext
-                                 )}
+            "zMass": FnalHistAccumulator(
+                dataset_axis=hist.Cat("dataset", "DAS name"),
+                channel_cat_axis=hist.Cat("channel",
+                                          "dilepton flavor"),
+                app=app
+                )}
 
         self.nonevent_data = NonEventData(app, nonevent_data)
 
     def calc(self, physics_objects, dataset_name):
         electrons = physics_objects["Electron"]
+
         ele = electrons[(electrons.pt > 20) &
                         (np.abs(electrons.eta) < 2.5) &
                         (electrons.cutBased >= 4)]
@@ -99,3 +101,4 @@ class ZpeakAnalysis(UserAnalysis):
                        weight=weight.flatten())
 
             zMassHist.accumulator.add(zMass)
+        return np.zeros(electrons.pt.size)

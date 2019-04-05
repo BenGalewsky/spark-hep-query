@@ -30,8 +30,8 @@ from unittest.mock import Mock, MagicMock
 
 from jinja2 import Environment, Template
 
-from irishep.analysis.user_analysis import UserAnalysis
 from irishep.analysis.nanoaod_columnar_analysis import NanoAODColumnarAnalysis
+from irishep.analysis.user_analysis import UserAnalysis
 from irishep.datasets.dataset import Dataset
 
 
@@ -52,7 +52,12 @@ class TestNanoAODColumnarAnalysis(unittest.TestCase):
                           'nMuon', 'Muon_pt', 'Muon_eta'])
 
         mock_user_analysis = Mock(UserAnalysis)
-        analysis = NanoAODColumnarAnalysis(mock_user_analysis)
+
+        mock_app = Mock()
+        mock_app.executor = Mock()
+        mock_app.executor.templates = {"nanoAOD": "mytemplate.py"}
+
+        analysis = NanoAODColumnarAnalysis(mock_app, mock_user_analysis)
         analysis.env = MagicMock(Environment)
         mock_template = MagicMock(Template)
         mock_template.render = Mock(return_value="def udf(): pass")
@@ -67,9 +72,27 @@ class TestNanoAODColumnarAnalysis(unittest.TestCase):
             cols=['dataset', 'nElectron', 'Electron_pt', 'Electron_eta',
                   'nMuon',
                   'Muon_pt', 'Muon_eta'],
-            physics_objects={
-                'Electron': ['nElectrons.array', 'pt=Electron_pt.array[0].base',
-                             'eta=Electron_eta.array[0].base'],
-                'Muon': ['nMuons.array', 'pt=Muon_pt.array[0].base',
-                         'eta=Muon_eta.array[0].base']},
+            physics_objects={'Electron': [
+                {'physics_obj_property': 'pt', 'col': 'Electron_pt'},
+                {'physics_obj_property': 'eta', 'col': 'Electron_eta'}
+            ],
+                'Muon': [
+                    {'physics_obj_property': 'pt', 'col': 'Muon_pt'},
+                    {'physics_obj_property': 'eta', 'col': 'Muon_eta'}
+                ]},
+            counts={'Electron': 'nElectrons', 'Muon': 'nMuons'},
             return_expr='Electron_pt')
+
+    def test_render_no_template(self):
+        mock_app = Mock()
+        mock_app.executor = Mock()
+        mock_app.executor.templates = {"notNanoAOD": "mytemplate.py"}
+        mock_user_analysis = MagicMock(UserAnalysis)
+
+        analysis = NanoAODColumnarAnalysis(mock_app, mock_user_analysis)
+        mock_dataset = MagicMock(Dataset)
+
+        self.assertRaises(
+            ValueError,
+            analysis.generate_udf, mock_dataset, ["Electron", "Muon"],
+            "Electron_pt")

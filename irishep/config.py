@@ -35,6 +35,7 @@ class Config:
     ----------
         dataset_manager: DatasetManager, optional
             Instance of dataset manager
+        executor: Instance of executor where the analysis will be run
         num_partitions: Int, optional
             Number of partitions to spread datasets over.
     """

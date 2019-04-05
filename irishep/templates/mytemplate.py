@@ -8,9 +8,8 @@ def udf({% for col in cols %}{{col}}{{ "," if not loop.last }}{% endfor %}):
     {% for obj in physics_objects.keys() %}
     physics_objects["{{obj}}"] = \
         JaggedCandidateArray.candidatesfromcounts(
-            {% for zip_entry in physics_objects.get(obj) %}{{zip_entry}}{{ "," if not loop.last }}
-            {% endfor %})
+            {{counts[obj]}}.values, {% for column in physics_objects[obj] %}
+            {{column['physics_obj_property']}}={{column['col']}}.array[0].base {{ "," if not loop.last }}{% endfor %})
     {% endfor %}
 
-    my_analysis.calc(physics_objects, dataset[0])
-    return {{return_expr}}
+    return pd.Series(my_analysis.calc(physics_objects, dataset[0]))

@@ -25,9 +25,11 @@
 # CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-from irishep.datasets.dataset import Dataset
 # noinspection PyUnresolvedReferences
-from pyspark.sql.functions import lit
+from pyspark.sql.functions import lit, pandas_udf, PandasUDFType
+from pyspark.sql.types import DoubleType
+
+from irishep.datasets.dataset import Dataset
 
 
 class SparkDataset(Dataset):
@@ -112,3 +114,12 @@ class SparkDataset(Dataset):
         :return: None
         """
         self.dataframe = self.dataframe.repartition(num_partitions)
+
+    def execute_udf(self, user_func):
+        zpeak_udf = pandas_udf(user_func.function, DoubleType(),
+                               PandasUDFType.SCALAR)
+
+        # The Describe operation forces the DAG to execute
+        self.dataframe.select(
+            zpeak_udf(
+                *self.udf_arguments(user_func.physics_objects))).describe()

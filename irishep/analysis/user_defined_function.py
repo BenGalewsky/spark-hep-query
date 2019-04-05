@@ -25,45 +25,9 @@
 # CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-from pyspark.sql import SparkSession
-
-from irishep.datasets.spark_dataset import SparkDataset
-from irishep.executors.executor import Executor
 
 
-class SparkExecutor(Executor):
-    templates = {
-        "nanoAOD": "mytemplate.py"
-    }
-
-    def __init__(self, master, app_name, num_partitions):
-        super().__init__(app_name)
-        self.spark = SparkSession.builder \
-            .master(master) \
-            .appName(app_name) \
-            .config("spark.jars.packages",
-                    "org.diana-hep:spark-root_2.11:0.1.15") \
-            .getOrCreate()
-        self.num_partitions = num_partitions
-
-    def read_files(self, dataset_name, files):
-        result_df = None
-        # Sparkroot can't handle list of files
-        for file in files:
-            file_df = self.spark.read.format("org.dianahep.sparkroot") \
-                .option("tree", "Events") \
-                .load(file)
-
-            # So just append each file's datafrane into one big one
-            result_df = file_df if not result_df else result_df.union(file_df)
-
-        dataset = SparkDataset(dataset_name, result_df)
-        dataset.repartition(self.num_partitions)
-
-        return dataset
-
-    def register_accumulator(self, initial_value, accumulator):
-        return self.spark.sparkContext.accumulator(initial_value, accumulator)
-
-    def register_broadcast_var(self, var):
-        return self.spark.sparkContext.broadcast(var)
+class UserDefinedFunction:
+    def __init__(self, physics_objects, a_func):
+        self.physics_objects = physics_objects
+        self.function = a_func

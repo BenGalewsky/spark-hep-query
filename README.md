@@ -7,7 +7,19 @@ physics data.
 
 ## Application
 The main entrypoint for the query service is through an instance of the `App` 
-class.  It is constructed from a `Config` object specification.
+class.  It is constructed from a `Config` object specification. Depending on the
+configuration, it can run on a spark cluster, or locally as an Uproot 
+analysis.
+
+## Configuration
+The config class accepts to configured instances:
+- The dataset manager
+- The executor
+
+## Executors
+The actual analysis is run by the executor. We have two classes:
+1. SparkExecutor to run the analysis on a Spark Cluster
+2. UprootExectutor runs the code locally using Uproot
 
 ## Dataset Management
 We don't want analyzers to have to think about individual ROOT files. 
@@ -16,6 +28,11 @@ more sophisticated implementations, our first draft for testing and development
 relies on a local csv file with dataset names and paths to the files. A 
 dataset can be composed of multiple files. This is represented as rows sharing 
 the same dataset name.
+
+This file can be consumed by a `FilesDatasetManager` which uses the underlying
+spark infrastructure for searching for datasets, or the even simplier 
+`InMemoryFilesDatasetManager` which uses a dictionary in memory to hold a small
+number of datasets. This is useful for the uproot run environment.
 
 An instance of the dataset manager is created as part of the `config` object 
 and passed into the application initializer.
@@ -45,8 +62,7 @@ For now, we are assuming that we are working with a CMS NanoAOD file. This
 will need more flexibility as we gain experience with new file formats.
 
 ### Dataset Operations
-There are some useful methods on dataset (which are mostly just passed
-through to Spark)
+There are some useful methods on dataset 
 
 `count` - Returns the number of events in the dataset
 
@@ -95,3 +111,7 @@ report with
 coverage run -m unittest
 coverage report
 ```
+
+## Run a sample App
+Run `demo/zpeak_app.py`. It is configured to use an Uproot executor and load
+a local nanoAOD file. There is a commented out config to switch to spark.

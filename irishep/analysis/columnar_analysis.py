@@ -29,10 +29,11 @@ from abc import ABCMeta, abstractmethod
 
 
 class ColumnarAnalysis(metaclass=ABCMeta):
-    def __init__(self):
+    def __init__(self, app):
         """
         Base class for a columnar style analysis
         """
+        self.app = app
 
     @abstractmethod
     def generate_udf(self, dataset, physics_objects, return_expr):
@@ -42,5 +43,6 @@ class ColumnarAnalysis(metaclass=ABCMeta):
         :param physics_objects: List of physics object names
         :param return_expr: A string representing what you want to return from
         the UDF
-        :return: The generated function
+        :return: An instance of UserDefinedFunction containing the generated
+        function
         """

@@ -25,45 +25,45 @@
 # CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-from pyspark.sql import SparkSession
-
-from irishep.datasets.spark_dataset import SparkDataset
+from irishep.datasets.uproot_dataset import UprootDataset
 from irishep.executors.executor import Executor
+import uproot
 
 
-class SparkExecutor(Executor):
+class FakeSparkBroadcastVar:
+    def __init__(self, value):
+        self.value = value
+
+
+class FakeSparkAccumulator:
+    def __init__(self, initial_val, accumulator):
+        self.value = initial_val
+        self.accumulator = accumulator
+
+    def add(self, other):
+        self.value = self.accumulator.addInPlace(self.value, other)
+
+
+class UprootExecutor(Executor):
     templates = {
-        "nanoAOD": "mytemplate.py"
+        "nanoAOD": "uproot_nanoaod.py"
     }
 
-    def __init__(self, master, app_name, num_partitions):
+    def __init__(self, app_name):
         super().__init__(app_name)
-        self.spark = SparkSession.builder \
-            .master(master) \
-            .appName(app_name) \
-            .config("spark.jars.packages",
-                    "org.diana-hep:spark-root_2.11:0.1.15") \
-            .getOrCreate()
-        self.num_partitions = num_partitions
 
     def read_files(self, dataset_name, files):
-        result_df = None
-        # Sparkroot can't handle list of files
-        for file in files:
-            file_df = self.spark.read.format("org.dianahep.sparkroot") \
-                .option("tree", "Events") \
-                .load(file)
+        if len(files) > 1:
+            print(
+                "WARN: Uproot implementation doesn't work with multiple " +
+                "files in a dataset. Just reading the first file")
 
-            # So just append each file's datafrane into one big one
-            result_df = file_df if not result_df else result_df.union(file_df)
-
-        dataset = SparkDataset(dataset_name, result_df)
-        dataset.repartition(self.num_partitions)
-
+        root = uproot.open(files[0])
+        dataset = UprootDataset(dataset_name, root["Events"])
         return dataset
 
     def register_accumulator(self, initial_value, accumulator):
-        return self.spark.sparkContext.accumulator(initial_value, accumulator)
+        return FakeSparkAccumulator(initial_value, accumulator)
 
     def register_broadcast_var(self, var):
-        return self.spark.sparkContext.broadcast(var)
+        return FakeSparkBroadcastVar(var)

@@ -1,6 +1,10 @@
 import unittest
 from unittest.mock import Mock, patch, MagicMock
 import pyspark.sql
+from pyspark.sql.types import DoubleType
+from pyspark.sql.functions import PandasUDFType
+
+from irishep.analysis.user_defined_function import UserDefinedFunction
 from irishep.datasets.spark_dataset import SparkDataset
 
 
@@ -185,6 +189,33 @@ class TestSparkDataset(unittest.TestCase):
 
         a_dataset.repartition(42)
         mock_dataframe.repartition.assert_called_with(42)
+
+    def test_execute_udf(self):
+        mock_udf_handle = Mock()
+        with patch('irishep.datasets.spark_dataset.pandas_udf',
+                   return_value=mock_udf_handle) as mock_udf:
+            mock_dataframe = self._generate_mock_dataframe()
+            mock_dataframe.columns = ['dataset',
+                                      "Electron_pdgId",
+                                      "Electron_pfRelIso03_all",
+                                      "nMuon",
+                                      "Muon_pt",
+                                      "Muon_eta"
+                                      ]
+
+            mock_dataframe.select = Mock()
+            user_func = Mock(UserDefinedFunction)
+            user_func.physics_objects = ["Electron", "Muon"]
+            user_func.function = Mock()
+            a_dataset = SparkDataset("my dataset", mock_dataframe)
+
+            a_dataset.execute_udf(user_func)
+
+            mock_udf.assert_called_with(user_func.function, DoubleType(),
+                                        PandasUDFType.SCALAR)
+            mock_udf_handle.assert_called_with('dataset', 'Electron_pdgId',
+                                               'Electron_pfRelIso03_all',
+                                               'nMuon', 'Muon_pt', 'Muon_eta')
 
 
 if __name__ == '__main__':

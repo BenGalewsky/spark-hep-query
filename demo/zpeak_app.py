@@ -41,8 +41,11 @@ from irishep.datasets.inmemory_files_dataset_manager import \
     InMemoryFilesDatasetManager
 from zpeak_analysis import ZpeakAnalysis
 
+executor = UprootExecutor("zpeak")
+# executor = SparkExecutor("local", "ZPeak", 20)
+
 config = Config(
-    executor = SparkExecutor("local", "ZPeak", 20),
+    executor = executor,
     dataset_manager=InMemoryFilesDatasetManager(database_file="demo_datasets.csv")
 )
 app = App(config=config)
@@ -59,6 +62,8 @@ weights_eval = weightsext.make_evaluator()
 
 
 dataset = app.read_dataset("DY Jets")
+print(dataset.columns)
+print(dataset.count())
 
 slim = dataset.select_columns(["nElectron",
                                "Electron_pt",
@@ -77,16 +82,16 @@ slim = dataset.select_columns(["nElectron",
                                "Muon_pdgId",
                                "Muon_pfRelIso04_all"])
 
+print(slim.count())
+print(slim.columns)
+print(slim.columns_with_types)
+
 my_analysis = ZpeakAnalysis(app, weights_eval)
-analysis = NanoAODColumnarAnalysis(my_analysis)
+
+analysis = NanoAODColumnarAnalysis(app, my_analysis)
 
 f = analysis.generate_udf(slim, ["Electron", "Muon"],
-                          "pd.Series(np.ones(Electron_pt.size))")
+                          "1.0")
 
-zpeak_udf = pandas_udf(f, DoubleType(), PandasUDFType.SCALAR)
-
-# The Describe operation forces the DAG to execute
-slim.dataframe.select(
-    zpeak_udf(*slim.udf_arguments(["Electron", "Muon"]))).describe()
-
+print(slim.execute_udf(f))
 print(my_analysis.accumulators["zMass"].accumulator.value.values())

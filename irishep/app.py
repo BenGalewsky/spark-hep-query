@@ -34,6 +34,7 @@ from irishep.datasets.dataset import Dataset
 
 class App:
     def __init__(self, config):
+        self.config = config
         self.spark = SparkSession.builder \
             .master(config.master) \
             .appName(config.app_name) \
@@ -75,4 +76,7 @@ class App:
             # So just append each file's datafrane into one big one
             result_df = file_df if not result_df else result_df.union(file_df)
 
-        return Dataset(dataset_name, result_df)
+        dataset = Dataset(dataset_name, result_df)
+        dataset.repartition(self.config.num_partitions)
+
+        return dataset
